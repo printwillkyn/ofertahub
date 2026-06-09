@@ -69,12 +69,45 @@
     @apply border-border;
   }
 
-  /* Universal transition for theme-related properties */
-  /* This ensures that even elements with transition-colors from Tailwind (150ms) get overridden to 2s */
-  *, *::before, *::after {
-    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  /* 
+     Reset Universal de Transição:
+     Forçamos 2 segundos em absolutamente tudo para evitar que classes do Tailwind 
+     como duration-150 ou transition-colors causem 'saltos' visuais.
+  */
+  html, 
+  body, 
+  div, 
+  span, 
+  app-sidebar, 
+  main, 
+  header, 
+  footer, 
+  button, 
+  input, 
+  textarea, 
+  p, 
+  h1, 
+  h2, 
+  h3, 
+  h4, 
+  h5, 
+  h6, 
+  svg, 
+  path,
+  a,
+  *,
+  *::before,
+  *::after {
+    transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter !important;
     transition-duration: 2000ms !important;
+    transition-delay: 0ms !important;
+    transition-timing-function: ease-in-out !important;
+  }
+
+  /* Desativar transições instantâneas que alguns componentes do Radix tentam aplicar */
+  [data-state], [data-radix-collection-item] {
+    transition-duration: 2000ms !important;
+    transition-delay: 0ms !important;
   }
 
   body {
