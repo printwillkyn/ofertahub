@@ -77,8 +77,18 @@
     @apply font-headline;
   }
 
-  /* Smooth transition for theme change on cards and common elements */
-  .bg-card, .bg-background, .bg-muted, .border, .text-foreground, .text-muted-foreground {
+  /* Smooth transition for theme change on cards, sidebar and common elements */
+  .bg-card, 
+  .bg-background, 
+  .bg-muted, 
+  .bg-sidebar,
+  .bg-sidebar-accent,
+  .border, 
+  .border-sidebar-border,
+  .text-foreground, 
+  .text-muted-foreground,
+  .text-sidebar-foreground,
+  .text-sidebar-accent-foreground {
     @apply transition-all ease-in-out;
     transition-duration: 2000ms;
   }
