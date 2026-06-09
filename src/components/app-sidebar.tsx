@@ -40,7 +40,7 @@ const navMain = [
     icon: Tag,
   },
   {
-    title: "Ofertas Enviadas",
+    title: "Disparos",
     url: "/history",
     icon: Send,
   },
