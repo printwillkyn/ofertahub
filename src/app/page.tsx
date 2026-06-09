@@ -1,188 +1,301 @@
 
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import * as React from "react"
 import { 
-  TrendingUp, 
-  Users, 
   MousePointer2, 
-  Send,
+  ShoppingCart, 
+  DollarSign, 
+  Zap,
   ArrowUpRight,
-  ArrowDownRight
+  ChevronRight,
+  TrendingUp,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink,
+  Send
 } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
 import {
-  Bar,
-  BarChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Cell
-} from "recharts"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
-const data = [
-  { name: "Seg", clicks: 400, sent: 2400 },
-  { name: "Ter", clicks: 300, sent: 1398 },
-  { name: "Qua", clicks: 200, sent: 9800 },
-  { name: "Qui", clicks: 278, sent: 3908 },
-  { name: "Sex", clicks: 189, sent: 4800 },
-  { name: "Sáb", clicks: 239, sent: 3800 },
-  { name: "Dom", clicks: 349, sent: 4300 },
+const bestOpportunities = [
+  {
+    id: "1",
+    product: "iPhone 15 Pro Max 256GB",
+    niche: "Eletrônicos",
+    price: "R$ 8.499,00",
+    score: 98,
+    commission: "R$ 254,97"
+  },
+  {
+    id: "2",
+    product: "Kindle Paperwhite 16GB",
+    niche: "Educação",
+    price: "R$ 699,00",
+    score: 95,
+    commission: "R$ 41,94"
+  },
+  {
+    id: "3",
+    product: "Fritadeira Philips Walita",
+    niche: "Casa",
+    price: "R$ 449,90",
+    score: 92,
+    commission: "R$ 31,49"
+  },
+  {
+    id: "4",
+    product: "Console PlayStation 5 Slim",
+    niche: "Games",
+    price: "R$ 3.699,00",
+    score: 89,
+    commission: "R$ 110,97"
+  }
 ]
 
-const stats = [
+const lastSentOffers = [
   {
-    title: "Cliques Totais",
-    value: "12,845",
-    change: "+12.5%",
-    trend: "up",
-    icon: MousePointer2,
-    color: "text-blue-600",
-    bg: "bg-blue-50"
+    id: "1",
+    product: "Smart TV Samsung 55' UHD",
+    group: "Ofertas Tech Brasil",
+    time: "Hoje, 14:20",
+    status: "success"
   },
   {
-    title: "Ofertas Enviadas",
-    value: "1,250",
-    change: "+5.2%",
-    trend: "up",
-    icon: Send,
-    color: "text-indigo-600",
-    bg: "bg-indigo-50"
+    id: "2",
+    product: "Airfryer Philco Gourmet",
+    group: "Casa & Cozinha VIP",
+    time: "Hoje, 09:15",
+    status: "success"
   },
   {
-    title: "Grupos Ativos",
-    value: "48",
-    change: "0%",
-    trend: "neutral",
-    icon: Users,
-    color: "text-emerald-600",
-    bg: "bg-emerald-50"
-  },
-  {
-    title: "Engajamento",
-    value: "24.2%",
-    change: "-2.1%",
-    trend: "down",
-    icon: TrendingUp,
-    color: "text-amber-600",
-    bg: "bg-amber-50"
+    id: "3",
+    product: "Mouse Logitech G502",
+    group: "Gamers Brasil",
+    time: "Ontem, 21:00",
+    status: "error"
   }
 ]
 
 export default function DashboardPage() {
+  const [period, setPeriod] = React.useState("30")
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-headline font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Acompanhe o desempenho das suas ofertas em tempo real.</p>
+    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-headline font-bold text-foreground">Inteligência de Vendas</h1>
+          <p className="text-muted-foreground">Monitore sua performance e comissões geradas.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Período:</span>
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-[180px] bg-card border-none shadow-sm font-medium">
+              <SelectValue placeholder="Selecione o período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">Hoje</SelectItem>
+              <SelectItem value="7">Últimos 7 dias</SelectItem>
+              <SelectItem value="30">Últimos 30 dias</SelectItem>
+              <SelectItem value="month">Mês Atual</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.title} className="border-none shadow-sm overflow-hidden group hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className={cn("p-2 rounded-lg", stat.bg)}>
-                  <stat.icon className={cn("h-6 w-6", stat.color)} />
-                </div>
-                {stat.trend === "up" && (
-                  <span className="flex items-center text-xs font-medium text-emerald-600">
-                    <ArrowUpRight className="h-3 w-3 mr-1" /> {stat.change}
-                  </span>
-                )}
-                {stat.trend === "down" && (
-                  <span className="flex items-center text-xs font-medium text-rose-600">
-                    <ArrowDownRight className="h-3 w-3 mr-1" /> {stat.change}
-                  </span>
-                )}
-                {stat.trend === "neutral" && (
-                  <span className="text-xs font-medium text-muted-foreground">{stat.change}</span>
-                )}
+        {/* Card 1: Cliques */}
+        <Card className="border-none shadow-sm hover:shadow-md transition-shadow group overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="p-2 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
+                <MousePointer2 className="h-6 w-6 text-blue-600" />
               </div>
-              <div className="mt-4">
-                <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                <h3 className="text-2xl font-bold text-foreground mt-1">{stat.value}</h3>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg font-headline">Cliques por Dia</CardTitle>
-            <CardDescription>Visualização semanal de engajamento</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ChartContainer config={{ clicks: { label: "Cliques", color: "hsl(var(--primary))" } }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data}>
-                    <XAxis 
-                      dataKey="name" 
-                      stroke="#888888" 
-                      fontSize={12} 
-                      tickLine={false} 
-                      axisLine={false} 
-                    />
-                    <YAxis 
-                      stroke="#888888" 
-                      fontSize={12} 
-                      tickLine={false} 
-                      axisLine={false} 
-                      tickFormatter={(value) => `${value}`}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar 
-                      dataKey="clicks" 
-                      fill="var(--color-clicks)" 
-                      radius={[4, 4, 0, 0]} 
-                      className="transition-all hover:opacity-80"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              <span className="flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+                <ArrowUpRight className="h-3 w-3 mr-1" /> +12.5%
+              </span>
+            </div>
+            <div className="mt-4">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Cliques nos Links</p>
+              <h3 className="text-3xl font-headline font-bold text-foreground mt-1">12.845</h3>
+              <p className="text-[10px] text-muted-foreground mt-1">Total de acessos via links afiliados</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg font-headline">Distribuição por Nicho</CardTitle>
-            <CardDescription>Volume de envios por categoria</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col justify-center h-[300px]">
-             <div className="space-y-4">
-               {[
-                 { label: "Eletrônicos", percentage: 45, color: "bg-blue-500" },
-                 { label: "Moda", percentage: 25, color: "bg-indigo-500" },
-                 { label: "Casa", percentage: 15, color: "bg-emerald-500" },
-                 { label: "Beleza", percentage: 10, color: "bg-amber-500" },
-                 { label: "Outros", percentage: 5, color: "bg-slate-500" }
-               ].map((niche) => (
-                 <div key={niche.label} className="space-y-1">
-                   <div className="flex justify-between text-sm">
-                     <span className="font-medium">{niche.label}</span>
-                     <span className="text-muted-foreground">{niche.percentage}%</span>
-                   </div>
-                   <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                     <div 
-                      className={cn("h-full rounded-full", niche.color)} 
-                      style={{ width: `${niche.percentage}%` }}
-                    />
-                   </div>
-                 </div>
-               ))}
-             </div>
+        {/* Card 2: Produtos Vendidos */}
+        <Card className="border-none shadow-sm hover:shadow-md transition-shadow group overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="p-2 rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
+                <ShoppingCart className="h-6 w-6 text-indigo-600" />
+              </div>
+              <span className="flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+                <ArrowUpRight className="h-3 w-3 mr-1" /> +8.2%
+              </span>
+            </div>
+            <div className="mt-4">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Produtos Vendidos</p>
+              <h3 className="text-3xl font-headline font-bold text-foreground mt-1">842</h3>
+              <p className="text-[10px] text-muted-foreground mt-1">Conversões diretas confirmadas</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card 3: Comissões Geradas */}
+        <Card className="border-none shadow-sm border-l-4 border-l-primary hover:shadow-md transition-shadow bg-primary/5 group overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="p-2 rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+                <DollarSign className="h-6 w-6" />
+              </div>
+              <span className="flex items-center text-xs font-bold text-emerald-600 bg-emerald-100/50 px-2 py-1 rounded-full">
+                <ArrowUpRight className="h-3 w-3 mr-1" /> +15.4%
+              </span>
+            </div>
+            <div className="mt-4">
+              <p className="text-xs font-bold text-primary uppercase tracking-widest">Comissões Geradas</p>
+              <h3 className="text-3xl font-headline font-bold text-foreground mt-1">R$ 14.250,80</h3>
+              <p className="text-[10px] text-muted-foreground mt-1">Valor total estimado de receita</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card 4: Ofertas Encontradas */}
+        <Card className="border-none shadow-sm hover:shadow-md transition-shadow group overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="p-2 rounded-lg bg-amber-50 group-hover:bg-amber-100 transition-colors">
+                <Zap className="h-6 w-6 text-amber-600 fill-amber-600" />
+              </div>
+              <Badge variant="outline" className="text-[10px] font-bold border-amber-200 text-amber-700 bg-amber-50">
+                AI ACTIVE
+              </Badge>
+            </div>
+            <div className="mt-4">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Ofertas Hoje</p>
+              <h3 className="text-3xl font-headline font-bold text-foreground mt-1">156</h3>
+              <p className="text-[10px] text-emerald-600 font-bold mt-1">42 prontas para envio imediato</p>
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* SEÇÃO 1: Melhores Oportunidades do Dia */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between px-2">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-headline font-bold text-foreground">Melhores Oportunidades do Dia</h2>
+            </div>
+            <Button variant="ghost" size="sm" className="text-primary font-bold text-xs">
+              Ver Todas <ChevronRight className="h-3 w-3 ml-1" />
+            </Button>
+          </div>
+          <Card className="border-none shadow-sm overflow-hidden bg-card">
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="font-headline py-4">Produto</TableHead>
+                  <TableHead className="font-headline">Nicho</TableHead>
+                  <TableHead className="font-headline">Preço Atual</TableHead>
+                  <TableHead className="font-headline text-center">Score</TableHead>
+                  <TableHead className="font-headline text-right">Comissão Estimada</TableHead>
+                  <TableHead className="w-[120px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bestOpportunities.map((item) => (
+                  <TableRow key={item.id} className="group hover:bg-muted/10 transition-colors">
+                    <TableCell className="font-semibold py-4 max-w-[200px] truncate">{item.product}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-none text-[10px] uppercase font-bold">
+                        {item.niche}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium text-muted-foreground">{item.price}</TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center">
+                        <div className={cn(
+                          "flex items-center justify-center h-8 w-8 rounded-full text-[10px] font-bold border-2",
+                          item.score > 90 ? "border-emerald-500 text-emerald-600 bg-emerald-50" : "border-amber-500 text-amber-600 bg-amber-50"
+                        )}>
+                          {item.score}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-bold text-primary">{item.commission}</TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="ghost" className="text-primary hover:text-primary/80 font-bold text-xs">
+                        Ver Oferta <ExternalLink className="h-3 w-3 ml-1" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </div>
+
+        {/* SEÇÃO 2: Últimas Ofertas Enviadas */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-2">
+            <Send className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-headline font-bold text-foreground">Últimos Envios</h2>
+          </div>
+          <Card className="border-none shadow-sm overflow-hidden bg-card h-full">
+            <div className="divide-y divide-muted/30">
+              {lastSentOffers.map((offer) => (
+                <div key={offer.id} className="p-4 hover:bg-muted/20 transition-colors">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-bold text-sm text-foreground line-clamp-1 flex-1">{offer.product}</h3>
+                    {offer.status === "success" ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500 ml-2 shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-rose-500 ml-2 shrink-0" />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span className="font-medium">{offer.group}</span>
+                    <span className="font-semibold">{offer.time}</span>
+                  </div>
+                  <div className="mt-2">
+                    <Badge className={cn(
+                      "text-[9px] font-bold uppercase py-0 px-1.5",
+                      offer.status === "success" ? "bg-emerald-50 text-emerald-600 border-none" : "bg-rose-50 text-rose-600 border-none"
+                    )}>
+                      {offer.status === "success" ? "Enviada" : "Erro"}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="p-4 bg-muted/10">
+              <Button variant="outline" className="w-full text-xs font-bold border-none bg-card shadow-sm h-9 hover:bg-muted/20">
+                Ver Histórico Completo
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
     </div>
   )
-}
-
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(" ");
 }
