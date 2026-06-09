@@ -18,6 +18,7 @@ import {
   AlertCircle,
   CheckCircle2
 } from "lucide-react"
+import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -38,11 +39,18 @@ import { cn } from "@/lib/utils"
 
 export default function SettingsPage() {
   const { toast } = useToast()
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
   const [messageTemplate, setMessageTemplate] = React.useState(`🔥 ACHADINHO DO DIA\n\n📦 {produto}\n\n💰 De: R$ {preco_anterior}\n🔥 Por: R$ {preco_atual}\n\n⭐ Avaliação: {avaliacao}\n\n🛒 Comprar:\n{link}`)
   
   const [niches, setNiches] = React.useState([
     "Casa", "Cozinha", "Organização", "Limpeza", "Bebê", "Utilidades"
   ])
+
+  // Avoid hydration mismatch by waiting for mount
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleSave = () => {
     toast({
@@ -123,7 +131,11 @@ export default function SettingsPage() {
                   <Label>Tema da Interface</Label>
                   <div className="flex items-center justify-between p-4 border rounded-xl bg-muted/10">
                     <span className="text-sm font-medium">Modo Escuro (Dark Mode)</span>
-                    <Switch />
+                    <Switch 
+                      checked={mounted && theme === 'dark'} 
+                      onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                      disabled={!mounted}
+                    />
                   </div>
                 </div>
               </div>
@@ -211,7 +223,7 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent>
                 <div className="mx-auto w-[280px] bg-[#E5DDD5] rounded-[32px] border-[8px] border-slate-800 p-2 shadow-2xl">
-                  <div className="bg-[#DCF8C6] p-3 rounded-lg shadow-sm text-[11px] font-body whitespace-pre-wrap leading-tight">
+                  <div className="bg-[#DCF8C6] dark:bg-[#054740] p-3 rounded-lg shadow-sm text-[11px] font-body whitespace-pre-wrap leading-tight text-foreground">
                     {messageTemplate
                       .replace("{produto}", "Airfryer Philips Walita")
                       .replace("{preco_anterior}", "599,00")
@@ -253,9 +265,9 @@ export default function SettingsPage() {
                   <Input type="number" defaultValue={15} className="font-bold text-emerald-600" />
                 </div>
               </div>
-              <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-3">
+              <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-xl flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
-                <p className="text-xs text-amber-800 leading-relaxed">
+                <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
                   <strong>Atenção:</strong> Essas configurações afetam diretamente a quantidade de ofertas disponíveis. Valores muito altos podem reduzir drasticamente o volume de disparos.
                 </p>
               </div>
