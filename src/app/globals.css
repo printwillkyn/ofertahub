@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -69,27 +68,35 @@
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground font-body transition-colors ease-in-out;
+
+  /* Universal transition for theme-related properties */
+  body, 
+  div, 
+  span, 
+  p, 
+  h1, h2, h3, h4, h5, h6, 
+  button, 
+  a, 
+  svg, 
+  header, 
+  footer, 
+  main, 
+  nav, 
+  aside, 
+  input, 
+  textarea, 
+  select {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 2000ms;
-  }
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-headline;
+    transition-delay: 0ms;
   }
 
-  /* Smooth transition for theme change on cards, sidebar and common elements */
-  .bg-card, 
-  .bg-background, 
-  .bg-muted, 
-  .bg-sidebar,
-  .bg-sidebar-accent,
-  .border, 
-  .border-sidebar-border,
-  .text-foreground, 
-  .text-muted-foreground,
-  .text-sidebar-foreground,
-  .text-sidebar-accent-foreground {
-    @apply transition-all ease-in-out;
-    transition-duration: 2000ms;
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline;
   }
 }
