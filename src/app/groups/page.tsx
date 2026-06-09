@@ -8,14 +8,11 @@ import {
   Hash, 
   Settings2, 
   MoreHorizontal, 
-  CheckCircle2, 
   Zap, 
   Clock, 
   Star, 
   ShieldCheck, 
-  AlertCircle,
   BarChart3,
-  Calendar,
   MessageSquare,
   Activity
 } from "lucide-react"
@@ -28,8 +25,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogTrigger
+  DialogFooter
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -320,9 +316,9 @@ export default function DistributionPage() {
 
           <DialogFooter className="p-6 border-t bg-muted/20">
             <Button variant="ghost" onClick={() => setIsConfigOpen(false)}>Cancelar</Button>
-            <Button className="bg-primary px-8">Salvar Configurações</Button>
+            <Button className="bg-primary px-8" onClick={() => setIsConfigOpen(false)}>Salvar Configurações</Button>
           </DialogFooter>
-        </>
+        </DialogContent>
       </Dialog>
     </div>
   )
