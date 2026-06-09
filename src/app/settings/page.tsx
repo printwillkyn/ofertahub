@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils"
 
 export default function SettingsPage() {
   const { toast } = useToast()
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
   const [messageTemplate, setMessageTemplate] = React.useState(`🔥 ACHADINHO DO DIA\n\n📦 {produto}\n\n💰 De: R$ {preco_anterior}\n🔥 Por: R$ {preco_atual}\n\n⭐ Avaliação: {avaliacao}\n\n🛒 Comprar:\n{link}`)
   
@@ -132,7 +132,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between p-4 border rounded-xl bg-muted/10">
                     <span className="text-sm font-medium">Modo Escuro (Dark Mode)</span>
                     <Switch 
-                      checked={mounted && theme === 'dark'} 
+                      checked={mounted && resolvedTheme === 'dark'} 
                       onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
                       disabled={!mounted}
                     />
