@@ -1,0 +1,17 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "logo",
+      "description": "OfertaHub Royal Blue Logo",
+      "imageUrl": "https://picsum.photos/seed/ofertahub-logo/200/200",
+      "imageHint": "tech logo"
+    },
+    {
+      "id": "hero-dashboard",
+      "description": "Dashboard Preview",
+      "imageUrl": "https://picsum.photos/seed/dashboard/800/400",
+      "imageHint": "dashboard software"
+    }
+  ]
+}
