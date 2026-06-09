@@ -12,6 +12,30 @@
       "description": "Dashboard Preview",
       "imageUrl": "https://picsum.photos/seed/dashboard/800/400",
       "imageHint": "dashboard software"
+    },
+    {
+      "id": "kitchen-item",
+      "description": "Cozinha Item",
+      "imageUrl": "https://picsum.photos/seed/kitchen/400/400",
+      "imageHint": "kitchen appliance"
+    },
+    {
+      "id": "cleaning-item",
+      "description": "Limpeza Item",
+      "imageUrl": "https://picsum.photos/seed/cleaning/400/400",
+      "imageHint": "cleaning product"
+    },
+    {
+      "id": "baby-item",
+      "description": "Bebê Item",
+      "imageUrl": "https://picsum.photos/seed/baby/400/400",
+      "imageHint": "baby product"
+    },
+    {
+      "id": "house-item",
+      "description": "Casa Item",
+      "imageUrl": "https://picsum.photos/seed/house/400/400",
+      "imageHint": "home decor"
     }
   ]
 }
