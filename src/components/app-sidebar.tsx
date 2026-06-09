@@ -6,7 +6,7 @@ import {
   LayoutDashboard,
   Tag,
   Send,
-  Users,
+  Activity,
   Settings,
   Zap,
 } from "lucide-react"
@@ -45,9 +45,9 @@ const navMain = [
     icon: Send,
   },
   {
-    title: "Grupos",
+    title: "Distribuição",
     url: "/groups",
-    icon: Users,
+    icon: Activity,
   },
   {
     title: "Configurações",
