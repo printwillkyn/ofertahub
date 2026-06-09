@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 const bestOpportunities = [
   {
@@ -206,8 +207,10 @@ export default function DashboardPage() {
               <TrendingUp className="h-5 w-5 text-primary" />
               <h2 className="text-xl font-headline font-bold text-foreground">Melhores Oportunidades do Dia</h2>
             </div>
-            <Button variant="ghost" size="sm" className="text-primary font-bold text-xs">
-              Ver Todas <ChevronRight className="h-3 w-3 ml-1" />
+            <Button variant="ghost" size="sm" className="text-primary font-bold text-xs" asChild>
+              <Link href="/offers">
+                Ver Todas <ChevronRight className="h-3 w-3 ml-1" />
+              </Link>
             </Button>
           </div>
           <Card className="border-none shadow-sm overflow-hidden bg-card">
@@ -289,8 +292,10 @@ export default function DashboardPage() {
               ))}
             </div>
             <div className="p-4 bg-muted/10">
-              <Button variant="outline" className="w-full text-xs font-bold border-none bg-card shadow-sm h-9 hover:bg-muted/20">
-                Ver Histórico Completo
+              <Button variant="outline" className="w-full text-xs font-bold border-none bg-card shadow-sm h-9 hover:bg-muted/20" asChild>
+                <Link href="/history">
+                  Ver Todos os Disparos
+                </Link>
               </Button>
             </div>
           </Card>

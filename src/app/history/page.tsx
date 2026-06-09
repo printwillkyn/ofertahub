@@ -45,7 +45,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter
 } from "@/components/ui/dialog"
 import {
@@ -156,6 +155,12 @@ export default function DisparosPage() {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = React.useState("history")
   const [selectedDisparo, setSelectedDisparo] = React.useState<any>(null)
+  const [isDetailsOpen, setIsDetailsOpen] = React.useState(false)
+
+  const handleRowClick = (item: any) => {
+    setSelectedDisparo(item)
+    setIsDetailsOpen(true)
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
@@ -227,87 +232,35 @@ export default function DisparosPage() {
               </TableHeader>
               <TableBody>
                 {historyData.map((item) => (
-                  <Dialog key={item.id}>
-                    <DialogTrigger asChild>
-                      <TableRow className="group cursor-pointer hover:bg-muted/20 transition-colors" onClick={() => setSelectedDisparo(item)}>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="font-semibold text-foreground group-hover:text-primary transition-colors">{item.product}</div>
-                            {item.isRecent && (
-                              <span className="inline-flex items-center text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200">
-                                <AlertTriangle className="h-2.5 w-2.5 mr-1" /> RECENTE
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell><Badge variant="secondary" className="bg-blue-50 text-blue-600 border-none text-[10px] uppercase font-bold">{item.niche}</Badge></TableCell>
-                        <TableCell>
-                          <div className="flex -space-x-2">
-                            {item.groups.map((g, i) => (
-                              <div key={i} title={g} className="h-6 w-6 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center text-[8px] font-bold text-primary">
-                                {g.charAt(0)}
-                              </div>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{item.sentAt}</TableCell>
-                        <TableCell className="text-center font-medium">{item.clicks}</TableCell>
-                        <TableCell className="text-center font-medium">{item.sales}</TableCell>
-                        <TableCell className="text-right font-bold text-emerald-600">{item.commission}</TableCell>
-                        <TableCell className="text-center">
-                          <StatusBadge status={item.status} />
-                        </TableCell>
-                      </TableRow>
-                    </DialogTrigger>
-                    {selectedDisparo && (
-                      <DialogContent className="sm:max-w-[700px]">
-                        <DialogHeader>
-                          <DialogTitle className="font-headline text-2xl">Detalhes do Disparo</DialogTitle>
-                          <DialogDescription>Análise detalhada de performance e cópia enviada.</DialogDescription>
-                        </DialogHeader>
-                        <div className="grid md:grid-cols-2 gap-6 py-4">
-                          <div className="space-y-4">
-                            <div className="aspect-square relative rounded-xl overflow-hidden bg-muted">
-                              <Image src={selectedDisparo.image} alt={selectedDisparo.product} fill className="object-cover" />
-                              <Badge className="absolute top-2 right-2 bg-primary">Score {selectedDisparo.score}</Badge>
-                            </div>
-                            <div className="p-4 bg-muted/30 rounded-xl space-y-2">
-                              <h4 className="font-bold text-sm">Informações</h4>
-                              <p className="text-xs text-muted-foreground">{selectedDisparo.product}</p>
-                              <Badge variant="outline" className="text-[10px]">{selectedDisparo.niche}</Badge>
-                              <Button variant="link" className="p-0 h-auto text-xs text-primary" onClick={() => window.open(selectedDisparo.link)}>
-                                <ExternalLink className="h-3 w-3 mr-1" /> Ver Oferta Original
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="space-y-4 flex flex-col">
-                            <div className="flex-1 space-y-2">
-                              <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Mensagem Enviada</label>
-                              <div className="bg-muted/50 p-3 rounded-lg text-xs font-mono whitespace-pre-wrap leading-relaxed border border-muted h-[200px] overflow-y-auto">
-                                {selectedDisparo.message}
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              <ResultItem label="Cliques" value={selectedDisparo.clicks} icon={<MousePointer2 className="h-3 w-3" />} />
-                              <ResultItem label="Vendas" value={selectedDisparo.sales} icon={<ShoppingCart className="h-3 w-3" />} />
-                              <ResultItem label="Comissão" value={selectedDisparo.commission} icon={<DollarSign className="h-3 w-3" />} color="text-emerald-600" />
-                              <ResultItem label="Conversão" value={selectedDisparo.conversion} icon={<TrendingUp className="h-3 w-3" />} color="text-primary" />
-                            </div>
-                          </div>
-                        </div>
-                        {selectedDisparo.isRecent && (
-                          <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-medium">
-                            <AlertTriangle className="h-4 w-4" /> ⚠ Oferta enviada recentemente. Evite disparar novamente para o mesmo grupo hoje.
-                          </div>
+                  <TableRow key={item.id} className="group cursor-pointer hover:bg-muted/20 transition-colors" onClick={() => handleRowClick(item)}>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="font-semibold text-foreground group-hover:text-primary transition-colors">{item.product}</div>
+                        {item.isRecent && (
+                          <span className="inline-flex items-center text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200">
+                            <AlertTriangle className="h-2.5 w-2.5 mr-1" /> RECENTE
+                          </span>
                         )}
-                        <DialogFooter className="gap-2">
-                          <Button variant="ghost" className="text-xs"><RotateCcw className="h-4 w-4 mr-2" /> Reenviar</Button>
-                          <Button variant="secondary" className="text-xs"><Copy className="h-4 w-4 mr-2" /> Duplicar</Button>
-                          <Button className="bg-primary text-xs"><Send className="h-4 w-4 mr-2" /> Ver Oferta</Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    )}
-                  </Dialog>
+                      </div>
+                    </TableCell>
+                    <TableCell><Badge variant="secondary" className="bg-blue-50 text-blue-600 border-none text-[10px] uppercase font-bold">{item.niche}</Badge></TableCell>
+                    <TableCell>
+                      <div className="flex -space-x-2">
+                        {item.groups.map((g, i) => (
+                          <div key={i} title={g} className="h-6 w-6 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center text-[8px] font-bold text-primary">
+                            {g.charAt(0)}
+                          </div>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{item.sentAt}</TableCell>
+                    <TableCell className="text-center font-medium">{item.clicks}</TableCell>
+                    <TableCell className="text-center font-medium">{item.sales}</TableCell>
+                    <TableCell className="text-right font-bold text-emerald-600">{item.commission}</TableCell>
+                    <TableCell className="text-center">
+                      <StatusBadge status={item.status} />
+                    </TableCell>
+                  </TableRow>
                 ))}
               </TableBody>
             </Table>
@@ -444,6 +397,60 @@ export default function DisparosPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* DETALHES DO DISPARO MODAL */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="sm:max-w-[700px]">
+          {selectedDisparo && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-headline text-2xl">Detalhes do Disparo</DialogTitle>
+                <DialogDescription>Análise detalhada de performance e cópia enviada.</DialogDescription>
+              </DialogHeader>
+              <div className="grid md:grid-cols-2 gap-6 py-4">
+                <div className="space-y-4">
+                  <div className="aspect-square relative rounded-xl overflow-hidden bg-muted">
+                    <Image src={selectedDisparo.image} alt={selectedDisparo.product} fill className="object-cover" />
+                    <Badge className="absolute top-2 right-2 bg-primary">Score {selectedDisparo.score}</Badge>
+                  </div>
+                  <div className="p-4 bg-muted/30 rounded-xl space-y-2">
+                    <h4 className="font-bold text-sm">Informações</h4>
+                    <p className="text-xs text-muted-foreground">{selectedDisparo.product}</p>
+                    <Badge variant="outline" className="text-[10px]">{selectedDisparo.niche}</Badge>
+                    <Button variant="link" className="p-0 h-auto text-xs text-primary" onClick={() => window.open(selectedDisparo.link)}>
+                      <ExternalLink className="h-3 w-3 mr-1" /> Ver Oferta Original
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-4 flex flex-col">
+                  <div className="flex-1 space-y-2">
+                    <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Mensagem Enviada</label>
+                    <div className="bg-muted/50 p-3 rounded-lg text-xs font-mono whitespace-pre-wrap leading-relaxed border border-muted h-[200px] overflow-y-auto">
+                      {selectedDisparo.message}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <ResultItem label="Cliques" value={selectedDisparo.clicks} icon={<MousePointer2 className="h-3 w-3" />} />
+                    <ResultItem label="Vendas" value={selectedDisparo.sales} icon={<ShoppingCart className="h-3 w-3" />} />
+                    <ResultItem label="Comissão" value={selectedDisparo.commission} icon={<DollarSign className="h-3 w-3" />} color="text-emerald-600" />
+                    <ResultItem label="Conversão" value={selectedDisparo.conversion} icon={<TrendingUp className="h-3 w-3" />} color="text-primary" />
+                  </div>
+                </div>
+              </div>
+              {selectedDisparo.isRecent && (
+                <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-medium">
+                  <AlertTriangle className="h-4 w-4" /> ⚠ Oferta enviada recentemente. Evite disparar novamente para o mesmo grupo hoje.
+                </div>
+              )}
+              <DialogFooter className="gap-2">
+                <Button variant="ghost" className="text-xs"><RotateCcw className="h-4 w-4 mr-2" /> Reenviar</Button>
+                <Button variant="secondary" className="text-xs"><Copy className="h-4 w-4 mr-2" /> Duplicar</Button>
+                <Button className="bg-primary text-xs"><Send className="h-4 w-4 mr-2" /> Ver Oferta</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
