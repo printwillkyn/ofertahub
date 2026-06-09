@@ -102,30 +102,14 @@ export default function SettingsPage() {
         <TabsContent value="general" className="space-y-6">
           <Card className="border-none shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg font-headline">Identidade da Plataforma</CardTitle>
-              <CardDescription>Configure como seu SaaS é apresentado.</CardDescription>
+              <CardTitle className="text-lg font-headline">Configurações Gerais</CardTitle>
+              <CardDescription>Gerencie suas informações básicas e preferências visuais.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="hub-name">Nome da Plataforma</Label>
-                  <Input id="hub-name" defaultValue="OfertaHub VIP" className="bg-muted/30" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Cor Principal</Label>
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-20 rounded-md bg-primary shadow-sm border" />
-                    <Input defaultValue="#3B82F6" className="flex-1 h-10 uppercase text-xs font-mono" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Logo da Marca</Label>
-                  <div className="flex items-center gap-4 p-4 border rounded-xl bg-muted/10">
-                    <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                      <Zap className="h-6 w-6 text-white" />
-                    </div>
-                    <Button variant="outline" size="sm">Substituir Logo</Button>
-                  </div>
+                  <Label htmlFor="gmail-backup">E-mail (Gmail) para Backup e Relatórios</Label>
+                  <Input id="gmail-backup" placeholder="seu-email@gmail.com" className="bg-muted/30" />
                 </div>
                 <div className="space-y-2">
                   <Label>Tema da Interface</Label>
