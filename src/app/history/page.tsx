@@ -5,25 +5,19 @@ import * as React from "react"
 import { 
   History, 
   LayoutTemplate, 
-  BarChart3, 
   Send, 
   Search, 
   Filter, 
   Plus, 
   MoreHorizontal, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle,
-  TrendingUp,
-  MousePointer2,
-  ShoppingCart,
-  DollarSign,
+  ShoppingCart, 
+  DollarSign, 
   Copy,
   RotateCcw,
   ExternalLink,
   AlertTriangle,
   ChevronRight,
-  Eye
+  MousePointer2
 } from "lucide-react"
 import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -54,12 +48,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { 
-  ChartContainer, 
-  ChartTooltip, 
-  ChartTooltipContent 
-} from "@/components/ui/chart"
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from "recharts"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
@@ -141,16 +129,6 @@ const templates = [
   }
 ]
 
-const chartData = [
-  { period: "01/03", value: 1200 },
-  { period: "05/03", value: 1800 },
-  { period: "10/03", value: 1400 },
-  { period: "15/03", value: 2400 },
-  { period: "20/03", value: 2100 },
-  { period: "25/03", value: 2800 },
-  { period: "30/03", value: 3200 },
-]
-
 export default function DisparosPage() {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = React.useState("history")
@@ -166,8 +144,8 @@ export default function DisparosPage() {
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-headline font-bold text-foreground">Central de Disparos</h1>
-          <p className="text-muted-foreground">Gerencie suas campanhas, mensagens e performance financeira.</p>
+          <h1 className="text-3xl font-headline font-bold text-foreground">Disparos & Campanhas</h1>
+          <p className="text-muted-foreground">Gerencie suas mensagens enviadas e biblioteca de modelos.</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20">
           <Plus className="mr-2 h-4 w-4" /> Nova Campanha
@@ -177,13 +155,10 @@ export default function DisparosPage() {
       <Tabs defaultValue="history" className="w-full" onValueChange={setActiveTab}>
         <TabsList className="bg-card border w-full justify-start p-1 h-auto mb-6">
           <TabsTrigger value="history" className="rounded-md py-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <History className="h-4 w-4 mr-2" /> Histórico
+            <History className="h-4 w-4 mr-2" /> Histórico de Envios
           </TabsTrigger>
           <TabsTrigger value="templates" className="rounded-md py-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <LayoutTemplate className="h-4 w-4 mr-2" /> Modelos
-          </TabsTrigger>
-          <TabsTrigger value="results" className="rounded-md py-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <BarChart3 className="h-4 w-4 mr-2" /> Resultados
+            <LayoutTemplate className="h-4 w-4 mr-2" /> Modelos de Mensagem
           </TabsTrigger>
         </TabsList>
 
@@ -238,7 +213,7 @@ export default function DisparosPage() {
                         <div className="font-semibold text-foreground group-hover:text-primary transition-colors">{item.product}</div>
                         {item.isRecent && (
                           <span className="inline-flex items-center text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200">
-                            <AlertTriangle className="h-2.5 w-2.5 mr-1" /> RECENTE
+                            <AlertTriangle className="h-2.5 w-2.5 mr-1" /> ENVIADO RECENTEMENTE
                           </span>
                         )}
                       </div>
@@ -272,7 +247,7 @@ export default function DisparosPage() {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <h2 className="text-xl font-headline font-bold">Biblioteca de Modelos</h2>
-              <p className="text-sm text-muted-foreground">Utilize variáveis como {'{produto}'}, {'{preco_atual}'}, {'{link}'} para automatizar suas mensagens.</p>
+              <p className="text-sm text-muted-foreground">Estruturas de mensagem prontas para escala.</p>
             </div>
             <Button className="bg-primary shadow-lg shadow-primary/20"><Plus className="h-4 w-4 mr-2" /> Novo Modelo</Button>
           </div>
@@ -301,7 +276,7 @@ export default function DisparosPage() {
 
           <Card className="border-dashed border-2 bg-transparent">
             <CardContent className="p-6">
-              <h4 className="text-xs font-bold uppercase text-muted-foreground mb-4">Variáveis Disponíveis</h4>
+              <h4 className="text-xs font-bold uppercase text-muted-foreground mb-4">Variáveis de Automação</h4>
               <div className="flex flex-wrap gap-2">
                 {["produto", "preco_anterior", "preco_atual", "economia", "avaliacao", "vendas", "link", "nicho"].map(v => (
                   <Badge key={v} variant="secondary" className="font-mono text-[10px] bg-primary/5 text-primary border-primary/20">{`{${v}}`}</Badge>
@@ -309,92 +284,6 @@ export default function DisparosPage() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {/* --- ABA 3: RESULTADOS --- */}
-        <TabsContent value="results" className="space-y-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-headline font-bold">Inteligência de Receita</h2>
-            <Select defaultValue="30">
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Período" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Hoje</SelectItem>
-                <SelectItem value="7">7 dias</SelectItem>
-                <SelectItem value="30">30 dias</SelectItem>
-                <SelectItem value="month">Mês Atual</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-4">
-            <ResultCard title="Cliques Totais" value="45.120" icon={<MousePointer2 className="h-4 w-4" />} trend="+12%" />
-            <ResultCard title="Vendas Totais" value="1.248" icon={<ShoppingCart className="h-4 w-4" />} trend="+8%" />
-            <ResultCard title="Comissões Totais" value="R$ 18.450,00" icon={<DollarSign className="h-4 w-4" />} trend="+15%" color="text-emerald-600" />
-            <ResultCard title="Conversão Média" value="2.76%" icon={<TrendingUp className="h-4 w-4" />} trend="+0.4%" />
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            <Card className="border-none shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-headline">Comissões por Período</CardTitle>
-                <CardDescription>Visualização temporal de ganhos estimados.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
-                      <XAxis dataKey="period" stroke="hsl(var(--muted-foreground))" fontSize={10} axisLine={false} tickLine={false} />
-                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} axisLine={false} tickLine={false} />
-                      <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold flex items-center gap-2 px-2">
-                  <TrendingUp className="h-4 w-4 text-primary" /> Top Ofertas (Cliques)
-                </h3>
-                <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                  <Table>
-                    <TableBody>
-                      {historyData.slice(0, 3).map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-semibold text-xs py-4">{item.product}</TableCell>
-                          <TableCell className="text-center font-bold text-primary">{item.clicks}</TableCell>
-                          <TableCell className="text-right font-bold text-emerald-600">{item.commission}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold flex items-center gap-2 px-2">
-                  <LayoutTemplate className="h-4 w-4 text-primary" /> Top Mensagens (Conversão)
-                </h3>
-                <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                  <Table>
-                    <TableBody>
-                      {templates.slice(0, 3).map((t, i) => (
-                        <TableRow key={t.id}>
-                          <TableCell className="font-semibold text-xs py-4">{t.name}</TableCell>
-                          <TableCell className="text-center text-xs font-bold text-indigo-600">{(3.2 - i * 0.5).toFixed(1)}% Conv.</TableCell>
-                          <TableCell className="text-right"><ChevronRight className="h-4 w-4 text-muted-foreground" /></TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            </div>
-          </div>
         </TabsContent>
       </Tabs>
 
@@ -439,7 +328,7 @@ export default function DisparosPage() {
               </div>
               {selectedDisparo.isRecent && (
                 <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-medium">
-                  <AlertTriangle className="h-4 w-4" /> ⚠ Oferta enviada recentemente. Evite disparar novamente para o mesmo grupo hoje.
+                  <AlertTriangle className="h-4 w-4" /> ⚠ Oferta enviada recentemente para estes grupos.
                 </div>
               )}
               <DialogFooter className="gap-2">
@@ -468,21 +357,6 @@ function MetricCard({ title, value, icon }: { title: string, value: string, icon
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{title}</p>
           <h3 className="text-2xl font-headline font-bold text-foreground mt-1">{value}</h3>
         </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function ResultCard({ title, value, icon, trend, color = "text-foreground" }: any) {
-  return (
-    <Card className="border-none shadow-sm bg-card">
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-muted-foreground">{icon}</span>
-          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">{trend}</span>
-        </div>
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{title}</p>
-        <h3 className={cn("text-xl font-headline font-bold mt-1", color)}>{value}</h3>
       </CardContent>
     </Card>
   )

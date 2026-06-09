@@ -13,9 +13,11 @@ import {
   CheckCircle2,
   AlertCircle,
   ExternalLink,
-  Send
+  Send,
+  BarChart3,
+  LayoutTemplate
 } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { 
   Table, 
@@ -33,6 +35,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { 
+  ChartContainer, 
+  ChartTooltip, 
+  ChartTooltipContent 
+} from "@/components/ui/chart"
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from "recharts"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 
@@ -93,6 +101,22 @@ const lastSentOffers = [
     time: "Ontem, 21:00",
     status: "error"
   }
+]
+
+const chartData = [
+  { period: "01/03", value: 1200 },
+  { period: "05/03", value: 1800 },
+  { period: "10/03", value: 1400 },
+  { period: "15/03", value: 2400 },
+  { period: "20/03", value: 2100 },
+  { period: "25/03", value: 2800 },
+  { period: "30/03", value: 3200 },
+]
+
+const topPerformanceModels = [
+  { id: "t1", name: "Achadinho do Dia", clicks: 4200, conversion: "3.4%" },
+  { id: "t2", name: "Preço Caiu!", clicks: 3150, conversion: "2.8%" },
+  { id: "t3", name: "Oferta Relâmpago", clicks: 2800, conversion: "2.5%" }
 ]
 
 export default function DashboardPage() {
@@ -195,6 +219,63 @@ export default function DashboardPage() {
               <h3 className="text-3xl font-headline font-bold text-foreground mt-1">156</h3>
               <p className="text-[10px] text-emerald-600 font-bold mt-1">42 prontas para envio imediato</p>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* SEÇÃO DE INTELIGÊNCIA FINANCEIRA */}
+      <div className="grid md:grid-cols-3 gap-6">
+        <Card className="md:col-span-2 border-none shadow-sm bg-card">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg font-headline">Comissões por Período</CardTitle>
+            </div>
+            <CardDescription>Visualização temporal de ganhos estimados e conversão.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
+                  <XAxis dataKey="period" stroke="hsl(var(--muted-foreground))" fontSize={10} axisLine={false} tickLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} axisLine={false} tickLine={false} />
+                  <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm bg-card">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <LayoutTemplate className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg font-headline">Top Mensagens</CardTitle>
+            </div>
+            <CardDescription>Performance por modelo de copy.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-none">
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">Modelo</TableHead>
+                  <TableHead className="text-right text-[10px] font-bold uppercase tracking-wider">Conv.</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {topPerformanceModels.map((model) => (
+                  <TableRow key={model.id} className="hover:bg-muted/10 border-muted/20">
+                    <TableCell className="text-xs font-semibold py-4">{model.name}</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="secondary" className="bg-emerald-50 text-emerald-600 border-none text-[10px] font-bold">
+                        {model.conversion}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
