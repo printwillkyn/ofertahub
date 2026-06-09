@@ -9,8 +9,14 @@ import {
   Globe, 
   Save, 
   ShieldCheck, 
-  ExternalLink,
-  Zap
+  Zap,
+  TrendingUp,
+  Tag,
+  Sparkles,
+  Plus,
+  Trash2,
+  AlertCircle,
+  CheckCircle2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -19,159 +25,315 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 export default function SettingsPage() {
   const { toast } = useToast()
+  const [messageTemplate, setMessageTemplate] = React.useState(`🔥 ACHADINHO DO DIA\n\n📦 {produto}\n\n💰 De: R$ {preco_anterior}\n🔥 Por: R$ {preco_atual}\n\n⭐ Avaliação: {avaliacao}\n\n🛒 Comprar:\n{link}`)
+  
+  const [niches, setNiches] = React.useState([
+    "Casa", "Cozinha", "Organização", "Limpeza", "Bebê", "Utilidades"
+  ])
 
   const handleSave = () => {
     toast({
       title: "Configurações salvas",
-      description: "Suas alterações foram aplicadas com sucesso."
+      description: "As alterações administrativas foram aplicadas com sucesso."
     })
   }
 
+  const handleDeleteNiche = (nicheToDelete: string) => {
+    setNiches(niches.filter(n => n !== nicheToDelete))
+    toast({ title: "Nicho removido", description: `${nicheToDelete} foi excluído da lista.` })
+  }
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-headline font-bold text-foreground">Configurações</h1>
-          <p className="text-muted-foreground">Personalize sua marca e conexões de API.</p>
+          <h1 className="text-3xl font-headline font-bold text-foreground">Centro Administrativo</h1>
+          <p className="text-muted-foreground">Controle global de marca, conexões, IA e regras de negócio.</p>
         </div>
-        <Button onClick={handleSave} className="bg-primary rounded-lg shadow-lg shadow-primary/20">
-          <Save className="mr-2 h-4 w-4" /> Salvar Tudo
+        <Button onClick={handleSave} className="bg-primary rounded-lg shadow-lg shadow-primary/20 px-8">
+          <Save className="mr-2 h-4 w-4" /> Salvar Alterações
         </Button>
       </div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="bg-card w-full justify-start p-1 h-auto mb-6 gap-2">
-          <TabsTrigger value="general" className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+        <TabsList className="bg-card w-full justify-start p-1 h-auto mb-6 gap-2 overflow-x-auto">
+          <TabsTrigger value="general" className="rounded-md py-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Globe className="h-4 w-4 mr-2" /> Geral
           </TabsTrigger>
-          <TabsTrigger value="evolution" className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Smartphone className="h-4 w-4 mr-2" /> Evolution API
+          <TabsTrigger value="whatsapp" className="rounded-md py-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Smartphone className="h-4 w-4 mr-2" /> WhatsApp
           </TabsTrigger>
-          <TabsTrigger value="brand" className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Palette className="h-4 w-4 mr-2" /> Branding
-          </TabsTrigger>
-          <TabsTrigger value="messages" className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsTrigger value="messages" className="rounded-md py-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <MessageSquare className="h-4 w-4 mr-2" /> Mensagens
+          </TabsTrigger>
+          <TabsTrigger value="score" className="rounded-md py-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TrendingUp className="h-4 w-4 mr-2" /> Score
+          </TabsTrigger>
+          <TabsTrigger value="niches" className="rounded-md py-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Tag className="h-4 w-4 mr-2" /> Nichos
+          </TabsTrigger>
+          <TabsTrigger value="ia" className="rounded-md py-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Sparkles className="h-4 w-4 mr-2" /> IA
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="general" className="space-y-4">
+        {/* 1. ABA GERAL */}
+        <TabsContent value="general" className="space-y-6">
           <Card className="border-none shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg font-headline">Informações do SaaS</CardTitle>
-              <CardDescription>Dados básicos da sua conta OfertaHub.</CardDescription>
+              <CardTitle className="text-lg font-headline">Identidade da Plataforma</CardTitle>
+              <CardDescription>Configure como seu SaaS é apresentado.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="hub-name">Nome da Instância</Label>
-                <Input id="hub-name" defaultValue="Minhas Ofertas VIP" className="bg-muted/30" />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="hub-email">E-mail de Notificação</Label>
-                <Input id="hub-email" defaultValue="admin@ofertahub.com" className="bg-muted/30" />
-              </div>
-              <div className="flex items-center justify-between pt-4 border-t">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Modo Automático</Label>
-                  <p className="text-sm text-muted-foreground">Enviar ofertas assim que forem detectadas pela IA.</p>
+            <CardContent className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="hub-name">Nome da Plataforma</Label>
+                  <Input id="hub-name" defaultValue="OfertaHub VIP" className="bg-muted/30" />
                 </div>
-                <Switch />
+                <div className="space-y-2">
+                  <Label>Cor Principal</Label>
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-20 rounded-md bg-primary shadow-sm border" />
+                    <Input defaultValue="#3B82F6" className="flex-1 h-10 uppercase text-xs font-mono" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Logo da Marca</Label>
+                  <div className="flex items-center gap-4 p-4 border rounded-xl bg-muted/10">
+                    <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+                      <Zap className="h-6 w-6 text-white" />
+                    </div>
+                    <Button variant="outline" size="sm">Substituir Logo</Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Tema da Interface</Label>
+                  <div className="flex items-center justify-between p-4 border rounded-xl bg-muted/10">
+                    <span className="text-sm font-medium">Modo Escuro (Dark Mode)</span>
+                    <Switch />
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="evolution" className="space-y-4">
+        {/* 2. ABA WHATSAPP */}
+        <TabsContent value="whatsapp" className="space-y-6">
           <Card className="border-none shadow-sm">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg font-headline">Conexão Evolution API</CardTitle>
-                  <CardDescription>Configure sua instância do WhatsApp via Evolution.</CardDescription>
-                </div>
-                <Badge className="bg-emerald-100 text-emerald-700 border-none">Conectado</Badge>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="text-lg font-headline">Conexão Evolution API</CardTitle>
+                <CardDescription>Gerencie a integração com o motor de WhatsApp.</CardDescription>
               </div>
+              <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 flex items-center gap-1.5 px-3 py-1">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Conectado
+              </Badge>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label>URL da Instância</Label>
-                <Input placeholder="https://api.suadominio.com" defaultValue="https://evolution.ofertahub.app" className="bg-muted/30" />
+            <CardContent className="space-y-6">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label>URL da Evolution API</Label>
+                  <Input placeholder="https://api.suadominio.com" defaultValue="https://evolution.ofertahub.app" className="bg-muted/30" />
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Token de Acesso</Label>
+                    <Input type="password" value="*************************" className="bg-muted/30" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nome da Instância</Label>
+                    <Input defaultValue="instancia_ofertahub_01" className="bg-muted/30" />
+                  </div>
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label>API Key (Global/Instância)</Label>
-                <Input type="password" value="*************************" className="bg-muted/30" />
-              </div>
-              <div className="grid gap-2">
-                <Label>Nome da Instância</Label>
-                <Input placeholder="whatsapp_ofertahub" className="bg-muted/30" />
-              </div>
-              <div className="pt-4">
-                <Button variant="outline" className="w-full">
-                  <ShieldCheck className="h-4 w-4 mr-2 text-emerald-500" /> Testar Conexão
+              <div className="pt-4 border-t flex gap-3">
+                <Button className="flex-1 bg-primary">
+                  <ShieldCheck className="h-4 w-4 mr-2" /> Salvar Conexão
+                </Button>
+                <Button variant="outline" className="flex-1">
+                  Testar Conexão em Tempo Real
                 </Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="brand" className="space-y-4">
+        {/* 3. ABA MENSAGENS */}
+        <TabsContent value="messages" className="space-y-6">
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card className="border-none shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-headline">Editor de Mensagem Padrão</CardTitle>
+                <CardDescription>Defina a estrutura base para todos os disparos.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Corpo da Mensagem (WhatsApp)</Label>
+                  <Textarea 
+                    value={messageTemplate} 
+                    onChange={(e) => setMessageTemplate(e.target.value)}
+                    className="font-mono text-sm leading-relaxed h-[280px] bg-muted/20"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground">Variáveis Disponíveis</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {["produto", "preco_anterior", "preco_atual", "economia", "avaliacao", "vendas", "link", "nicho"].map(v => (
+                      <Badge key={v} variant="secondary" className="font-mono text-[9px] cursor-pointer hover:bg-primary hover:text-white transition-colors">
+                        {`{${v}}`}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-sm bg-primary/[0.02]">
+              <CardHeader>
+                <CardTitle className="text-lg font-headline flex items-center gap-2">
+                  <Smartphone className="h-5 w-5 text-primary" /> Preview no Celular
+                </CardTitle>
+                <CardDescription>Como a oferta aparecerá para seu cliente.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="mx-auto w-[280px] bg-[#E5DDD5] rounded-[32px] border-[8px] border-slate-800 p-2 shadow-2xl">
+                  <div className="bg-[#DCF8C6] p-3 rounded-lg shadow-sm text-[11px] font-body whitespace-pre-wrap leading-tight">
+                    {messageTemplate
+                      .replace("{produto}", "Airfryer Philips Walita")
+                      .replace("{preco_anterior}", "599,00")
+                      .replace("{preco_atual}", "449,90")
+                      .replace("{avaliacao}", "4.9")
+                      .replace("{link}", "https://amzn.to/3afiliado")
+                    }
+                  </div>
+                  <div className="mt-2 text-center text-[10px] text-muted-foreground uppercase tracking-widest">Preview WhatsApp</div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* 4. ABA SCORE */}
+        <TabsContent value="score" className="space-y-6">
           <Card className="border-none shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg font-headline">Identidade Visual</CardTitle>
-              <CardDescription>Como sua marca aparece para os usuários.</CardDescription>
+              <CardTitle className="text-lg font-headline">Regras de Curadoria Automática</CardTitle>
+              <CardDescription>Defina os critérios mínimos para que uma oferta seja listada.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center gap-8">
-                <div className="space-y-2 flex-1">
-                  <Label>Logo da Marca</Label>
-                  <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 rounded-xl bg-primary flex items-center justify-center shadow-inner">
-                      <Zap className="h-8 w-8 text-white" />
-                    </div>
-                    <Button variant="secondary" size="sm">Alterar Logo</Button>
-                  </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="space-y-2">
+                  <Label>Score Mínimo (0-100)</Label>
+                  <Input type="number" defaultValue={80} className="font-bold text-primary" />
                 </div>
-                <div className="space-y-2 flex-1">
-                  <Label>Cor Primária</Label>
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-24 rounded-md bg-[#4461E1] shadow-sm border" />
-                    <Input defaultValue="#4461E1" className="w-24 h-10 uppercase text-xs" />
-                  </div>
+                <div className="space-y-2">
+                  <Label>Avaliação Mínima (⭐)</Label>
+                  <Input type="number" step="0.1" defaultValue={4.5} className="font-bold text-amber-500" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Vendas Mínimas (Mês)</Label>
+                  <Input type="number" defaultValue={100} className="font-bold text-indigo-600" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Economia Mínima %</Label>
+                  <Input type="number" defaultValue={15} className="font-bold text-emerald-600" />
                 </div>
               </div>
-              <div className="space-y-2 pt-4 border-t">
-                <Label>Favicon</Label>
-                <Button variant="outline" size="sm">Fazer Upload</Button>
+              <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                <p className="text-xs text-amber-800 leading-relaxed">
+                  <strong>Atenção:</strong> Essas configurações afetam diretamente a quantidade de ofertas disponíveis. Valores muito altos podem reduzir drasticamente o volume de disparos.
+                </p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="messages" className="space-y-4">
+        {/* 5. ABA NICHOS */}
+        <TabsContent value="niches" className="space-y-6">
+          <Card className="border-none shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-lg font-headline">Gestão de Nichos</CardTitle>
+                <CardDescription>Defina as categorias de produtos que a plataforma monitora.</CardDescription>
+              </div>
+              <Button size="sm" className="bg-primary">
+                <Plus className="h-4 w-4 mr-1" /> Criar Nicho
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {niches.map((niche) => (
+                  <div key={niche} className="group p-4 border rounded-xl flex items-center justify-between hover:border-primary transition-colors bg-muted/5">
+                    <span className="font-medium text-sm">{niche}</span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleDeleteNiche(niche)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 6. ABA IA */}
+        <TabsContent value="ia" className="space-y-6">
           <Card className="border-none shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg font-headline">Textos Padrão</CardTitle>
-              <CardDescription>Estrutura base para todas as suas ofertas.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-headline">Inteligência Artificial (Genkit)</CardTitle>
+                  <CardDescription>Configure como a IA reescreve suas mensagens para conversão.</CardDescription>
+                </div>
+                <Switch defaultChecked />
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label>Mensagem de Saudação</Label>
-                <Input defaultValue="🚨 OFERTA IMPERDÍVEL DETECTADA! 🚨" className="bg-muted/30" />
-              </div>
-              <div className="grid gap-2">
-                <Label>Rodapé de Link (CTA)</Label>
-                <Input defaultValue="🛒 Clique no link abaixo para aproveitar:" className="bg-muted/30" />
-              </div>
-              <div className="grid gap-2">
-                <Label>Aviso Legal / Regras</Label>
-                <Textarea 
-                  defaultValue="*O preço pode sofrer alteração a qualquer momento pela loja. Verifique sempre o valor final no carrinho.*" 
-                  className="bg-muted/30 resize-none h-24"
-                />
+            <CardContent className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>Tom da Mensagem</Label>
+                  <Select defaultValue="economia">
+                    <SelectTrigger className="bg-muted/30">
+                      <SelectValue placeholder="Selecione o tom" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="conversa">Amigável / Conversa</SelectItem>
+                      <SelectItem value="economia">Focado em Economia</SelectItem>
+                      <SelectItem value="urgencia">Urgência / Escassez</SelectItem>
+                      <SelectItem value="informativo">Técnico / Informativo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Criatividade da IA (Temperature)</Label>
+                  <Input type="number" step="0.1" defaultValue={0.7} className="bg-muted/30" />
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <Label>Contexto Adicional para a IA</Label>
+                  <Textarea 
+                    placeholder="Ex: Sempre use emojis relacionados a casa e família. Evite gírias muito informais." 
+                    className="h-24 bg-muted/30 resize-none"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
