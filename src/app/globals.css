@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -70,9 +69,14 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body;
+    @apply bg-background text-foreground font-body transition-colors duration-500 ease-in-out;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-headline;
+  }
+
+  /* Smooth transition for theme change on cards and common elements */
+  .bg-card, .bg-background, .bg-muted, .border, .text-foreground, .text-muted-foreground {
+    @apply transition-all duration-500 ease-in-out;
   }
 }
