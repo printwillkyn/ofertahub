@@ -38,50 +38,58 @@ import { cn } from "@/lib/utils"
 const groupsData = [
   {
     id: "1",
-    name: "Ofertas Tech Brasil",
+    name: "Casa & Cozinha VIP",
     platform: "WhatsApp",
     lastDispatch: "Hoje às 14:20",
     offersToday: 8,
-    niches: ["Tecnologia", "Games"],
+    niches: ["Casa", "Cozinha"],
     status: "connected",
     waId: "1203630248593@g.us"
   },
   {
     id: "2",
-    name: "Casa & Cozinha VIP",
+    name: "Mães de Plantão",
     platform: "WhatsApp",
     lastDispatch: "Hoje às 09:42",
     offersToday: 4,
-    niches: ["Casa", "Cozinha", "Organização", "Limpeza"],
+    niches: ["Bebê", "Utilidades"],
     status: "connected",
     waId: "1203630312456@g.us"
   },
   {
     id: "3",
-    name: "Mães de Plantão",
+    name: "Organização & Limpeza",
     platform: "WhatsApp",
     lastDispatch: "Ontem às 18:00",
     offersToday: 0,
-    niches: ["Bebê", "Utilidades"],
+    niches: ["Organização", "Limpeza"],
     status: "disconnected",
     waId: "1203630456789@g.us"
   },
   {
     id: "4",
-    name: "Organização & Limpeza",
+    name: "Achadinhos do Lar",
     platform: "WhatsApp",
     lastDispatch: "Hoje às 11:15",
     offersToday: 6,
-    niches: ["Organização", "Limpeza", "Utilidades"],
+    niches: ["Casa", "Utilidades", "Organização"],
     status: "connected",
     waId: "1203630567890@g.us"
+  },
+  {
+    id: "5",
+    name: "Utilidades Domésticas",
+    platform: "WhatsApp",
+    lastDispatch: "Hoje às 08:30",
+    offersToday: 2,
+    niches: ["Utilidades"],
+    status: "connected",
+    waId: "1203630678901@g.us"
   }
 ]
 
 const nichesList = [
-  "Casa", "Cozinha", "Organização", "Limpeza", "Bebê", 
-  "Utilidades", "Fitness", "Tecnologia", "Ferramentas", 
-  "Automotivo", "Pets"
+  "Casa", "Cozinha", "Organização", "Limpeza", "Bebê", "Utilidades"
 ]
 
 export default function DistributionPage() {
@@ -110,7 +118,7 @@ export default function DistributionPage() {
         <MetricCard title="Grupos Ativos" value="12" icon={<Users className="h-5 w-5 text-blue-600" />} change="+2" />
         <MetricCard title="Grupos Conectados" value="10" icon={<ShieldCheck className="h-5 w-5 text-emerald-600" />} />
         <MetricCard title="Disparos Hoje" value="156" icon={<Zap className="h-5 w-5 text-amber-600" />} change="+12%" />
-        <MetricCard title="Nichos Monitorados" value="08" icon={<Activity className="h-5 w-5 text-indigo-600" />} />
+        <MetricCard title="Nichos Monitorados" value="06" icon={<Activity className="h-5 w-5 text-indigo-600" />} />
       </div>
 
       {/* CARDS DOS GRUPOS */}
@@ -220,7 +228,7 @@ export default function DistributionPage() {
                 <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
                   <Hash className="h-4 w-4" /> 2. Nichos Permitidos
                 </h3>
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {nichesList.map((niche) => (
                     <div key={niche} className="flex items-center space-x-2">
                       <Checkbox id={`niche-${niche}`} defaultChecked={selectedGroup?.niches.includes(niche)} />
@@ -239,7 +247,7 @@ export default function DistributionPage() {
                 </h3>
                 <p className="text-xs text-muted-foreground">O sistema priorizará ofertas com score alto e nichos de maior prioridade.</p>
                 <div className="space-y-6">
-                  {nichesList.slice(0, 4).map((niche) => (
+                  {nichesList.map((niche) => (
                     <div key={niche} className="space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-bold">{niche}</span>
@@ -277,7 +285,7 @@ export default function DistributionPage() {
                 <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
                   <Clock className="h-4 w-4" /> 5. Horários Permitidos
                 </h3>
-                <div className="flex gap-6">
+                <div className="flex flex-wrap gap-4">
                   <div className="flex items-center space-x-2">
                     <Checkbox id="time-morning" defaultChecked />
                     <Label htmlFor="time-morning">Manhã (08h-12h)</Label>
