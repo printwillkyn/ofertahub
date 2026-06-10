@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/select"
 import { generateMarketingMessage } from "@/ai/flows/generate-marketing-message"
 import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
 
@@ -146,6 +147,57 @@ const initialOffers = [
   }
 ]
 
+type SupabaseOffer = {
+  id: string
+  title: string | null
+  price: string | number | null
+  avg_price: string | number | null
+  economy: string | null
+  niche: string | null
+  rating: number | null
+  sales: string | null
+  score: number | null
+  store: string | null
+  status: string | null
+  image: string | null
+  affiliate_link: string | null
+  created_at?: string | null
+}
+
+const toText = (value: string | number | null | undefined) => (value == null ? "" : String(value))
+
+const mapOfferFromSupabase = (offer: SupabaseOffer): Offer => ({
+  id: offer.id,
+  title: offer.title || "",
+  price: toText(offer.price),
+  avgPrice: toText(offer.avg_price),
+  economy: offer.economy || "0%",
+  niche: offer.niche || "",
+  rating: Number(offer.rating ?? 0),
+  sales: offer.sales || "",
+  score: Number(offer.score ?? 0),
+  store: offer.store || "",
+  status: offer.status || "Ativo",
+  image: offer.image || "house-item",
+  affiliateLink: offer.affiliate_link || ""
+})
+
+const mapOfferToSupabase = (offer: Offer): SupabaseOffer => ({
+  id: offer.id,
+  title: offer.title,
+  price: offer.price,
+  avg_price: offer.avgPrice,
+  economy: offer.economy,
+  niche: offer.niche,
+  rating: offer.rating,
+  sales: offer.sales,
+  score: offer.score,
+  store: offer.store,
+  status: offer.status,
+  image: offer.image,
+  affiliate_link: offer.affiliateLink || null
+})
+
 const emptyManualOffer = {
   title: "",
   price: "",
@@ -158,7 +210,7 @@ const emptyManualOffer = {
 }
 
 export default function DailyOffersPage() {
-  const [offers, setOffers] = React.useState<Offer[]>(initialOffers)
+  const [offers, setOffers] = React.useState<Offer[]>([])
   const [isAiLoading, setIsAiLoading] = React.useState(false)
   const [generatedCopy, setGeneratedCopy] = React.useState("")
   const [offerToAnalyse, setOfferToAnalyse] = React.useState<Offer | null>(null)
@@ -167,6 +219,28 @@ export default function DailyOffersPage() {
   const [manualOffer, setManualOffer] = React.useState(emptyManualOffer)
   const [selectedNiche, setSelectedNiche] = React.useState("Geral")
   const { toast } = useToast()
+
+  React.useEffect(() => {
+    const loadOffers = async () => {
+      const { data, error } = await supabase
+        .from("offers")
+        .select("*")
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Erro ao carregar ofertas",
+          description: "Nao foi possivel buscar as ofertas no Supabase."
+        })
+        return
+      }
+
+      setOffers((data || []).map((offer) => mapOfferFromSupabase(offer as SupabaseOffer)))
+    }
+
+    loadOffers()
+  }, [toast])
 
   const formatCurrency = (value: string) => {
     const trimmedValue = value.trim()
@@ -217,10 +291,24 @@ export default function DailyOffersPage() {
     setIsAnalyseOpen(true)
   }
 
-  const handleDeleteOffer = (id: string) => {
+  const handleDeleteOffer = async (id: string) => {
     const shouldDelete = window.confirm("Tem certeza que deseja excluir esta oferta?")
 
     if (!shouldDelete) return
+
+    const { error } = await supabase
+      .from("offers")
+      .delete()
+      .eq("id", id)
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao excluir oferta",
+        description: "Nao foi possivel excluir a oferta no Supabase."
+      })
+      return
+    }
 
     setOffers((currentOffers) => currentOffers.filter((offer) => offer.id !== id))
     toast({ title: "Oferta excluída", description: "A oferta foi removida da central." })
@@ -233,7 +321,7 @@ export default function DailyOffersPage() {
     }))
   }
 
-  const handleSaveManualOffer = () => {
+  const handleSaveManualOffer = async () => {
     const price = formatCurrency(manualOffer.price)
     const avgPrice = formatCurrency(manualOffer.avgPrice)
     const score = Number(manualOffer.score)
@@ -254,7 +342,22 @@ export default function DailyOffersPage() {
       affiliateLink: manualOffer.affiliateLink.trim()
     }
 
-    setOffers((currentOffers) => [newOffer, ...currentOffers])
+    const { data, error } = await supabase
+      .from("offers")
+      .insert(mapOfferToSupabase(newOffer))
+      .select("*")
+      .single()
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao salvar oferta",
+        description: "Nao foi possivel salvar a oferta no Supabase."
+      })
+      return
+    }
+
+    setOffers((currentOffers) => [mapOfferFromSupabase(data as SupabaseOffer), ...currentOffers])
     setManualOffer(emptyManualOffer)
     setIsManualOfferOpen(false)
     toast({ title: "Oferta salva!", description: "A nova oferta manual foi adicionada na tabela." })
