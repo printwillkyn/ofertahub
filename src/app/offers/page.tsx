@@ -15,7 +15,8 @@ import {
   ExternalLink,
   ChevronRight,
   Copy,
-  Check
+  Check,
+  Trash2
 } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -51,6 +52,22 @@ import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
 
+type Offer = {
+  id: string
+  title: string
+  price: string
+  avgPrice: string
+  economy: string
+  niche: string
+  rating: number
+  sales: string
+  score: number
+  store: string
+  status: string
+  image: string
+  affiliateLink?: string
+}
+
 const initialOffers = [
   {
     id: "1",
@@ -64,7 +81,8 @@ const initialOffers = [
     score: 98,
     store: "Amazon",
     status: "Ativo",
-    image: "kitchen-item"
+    image: "kitchen-item",
+    affiliateLink: "https://www.amazon.com.br/"
   },
   {
     id: "2",
@@ -78,7 +96,8 @@ const initialOffers = [
     score: 95,
     store: "Mercado Livre",
     status: "Ativo",
-    image: "cleaning-item"
+    image: "cleaning-item",
+    affiliateLink: "https://www.mercadolivre.com.br/"
   },
   {
     id: "3",
@@ -92,7 +111,8 @@ const initialOffers = [
     score: 92,
     store: "Magalu",
     status: "Ativo",
-    image: "baby-item"
+    image: "baby-item",
+    affiliateLink: "https://www.magazineluiza.com.br/"
   },
   {
     id: "4",
@@ -106,7 +126,8 @@ const initialOffers = [
     score: 89,
     store: "Amazon",
     status: "Ativo",
-    image: "kitchen-item"
+    image: "kitchen-item",
+    affiliateLink: "https://www.amazon.com.br/"
   },
   {
     id: "5",
@@ -120,26 +141,65 @@ const initialOffers = [
     score: 84,
     store: "Shopee",
     status: "Ativo",
-    image: "house-item"
+    image: "house-item",
+    affiliateLink: "https://shopee.com.br/"
   }
 ]
 
+const emptyManualOffer = {
+  title: "",
+  price: "",
+  avgPrice: "",
+  niche: "",
+  store: "",
+  affiliateLink: "",
+  score: "",
+  status: "Ativo"
+}
+
 export default function DailyOffersPage() {
+  const [offers, setOffers] = React.useState<Offer[]>(initialOffers)
   const [isAiLoading, setIsAiLoading] = React.useState(false)
   const [generatedCopy, setGeneratedCopy] = React.useState("")
-  const [offerToAnalyse, setOfferToAnalyse] = React.useState<any>(null)
+  const [offerToAnalyse, setOfferToAnalyse] = React.useState<Offer | null>(null)
   const [isAnalyseOpen, setIsAnalyseOpen] = React.useState(false)
+  const [isManualOfferOpen, setIsManualOfferOpen] = React.useState(false)
+  const [manualOffer, setManualOffer] = React.useState(emptyManualOffer)
   const [selectedNiche, setSelectedNiche] = React.useState("Geral")
   const { toast } = useToast()
 
-  const handleGenerateCopy = async (offer: any) => {
+  const formatCurrency = (value: string) => {
+    const trimmedValue = value.trim()
+    if (!trimmedValue) return ""
+    return trimmedValue.toLowerCase().startsWith("r$") ? trimmedValue : `R$ ${trimmedValue}`
+  }
+
+  const getNumericPrice = (value: string) => {
+    const normalizedValue = value.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".")
+    return Number(normalizedValue)
+  }
+
+  const getEconomy = (price: string, avgPrice: string) => {
+    const currentPrice = getNumericPrice(price)
+    const averagePrice = getNumericPrice(avgPrice)
+
+    if (!currentPrice || !averagePrice || averagePrice <= currentPrice) return "0%"
+
+    return `${Math.round(((averagePrice - currentPrice) / averagePrice) * 100)}%`
+  }
+
+  const getAffiliateLink = (offer: Offer) => offer.affiliateLink || `${offer.store}.com/link-afiliado`
+
+  const getWhatsAppMessage = (offer: Offer) => generatedCopy || `OFERTA DETECTADA!\n\n${offer.title}\n\nDe: ${offer.avgPrice}\nPor: ${offer.price}\n\nLink: ${getAffiliateLink(offer)}`
+
+  const handleGenerateCopy = async (offer: Offer) => {
     setIsAiLoading(true)
     try {
       const result = await generateMarketingMessage({
-        offerDescription: `${offer.title} por ${offer.price}. Economia de ${offer.economy}. Loja: ${offer.store}`,
+        offerDescription: `${offer.title} por ${offer.price}. Economia de ${offer.economy}. Loja: ${offer.store}. Link: ${offer.affiliateLink || "sem link informado"}`,
         audienceNiche: selectedNiche
       })
-      setGeneratedCopy(result.marketingMessage)
+      setGeneratedCopy(`${result.marketingMessage}\n\nLink: ${getAffiliateLink(offer)}`)
     } catch (error) {
       toast({
         variant: "destructive",
@@ -151,10 +211,53 @@ export default function DailyOffersPage() {
     }
   }
 
-  const openAnalysis = (offer: any) => {
+  const openAnalysis = (offer: Offer) => {
     setOfferToAnalyse(offer)
     setGeneratedCopy("")
     setIsAnalyseOpen(true)
+  }
+
+  const handleDeleteOffer = (id: string) => {
+    const shouldDelete = window.confirm("Tem certeza que deseja excluir esta oferta?")
+
+    if (!shouldDelete) return
+
+    setOffers((currentOffers) => currentOffers.filter((offer) => offer.id !== id))
+    toast({ title: "Oferta excluída", description: "A oferta foi removida da central." })
+  }
+
+  const handleManualOfferChange = (field: keyof typeof emptyManualOffer, value: string) => {
+    setManualOffer((currentOffer) => ({
+      ...currentOffer,
+      [field]: value
+    }))
+  }
+
+  const handleSaveManualOffer = () => {
+    const price = formatCurrency(manualOffer.price)
+    const avgPrice = formatCurrency(manualOffer.avgPrice)
+    const score = Number(manualOffer.score)
+
+    const newOffer: Offer = {
+      id: crypto.randomUUID(),
+      title: manualOffer.title.trim(),
+      price,
+      avgPrice,
+      economy: getEconomy(price, avgPrice),
+      niche: manualOffer.niche.trim(),
+      rating: 0,
+      sales: "Manual",
+      score: Number.isFinite(score) ? score : 0,
+      store: manualOffer.store.trim(),
+      status: manualOffer.status,
+      image: "house-item",
+      affiliateLink: manualOffer.affiliateLink.trim()
+    }
+
+    setOffers((currentOffers) => [newOffer, ...currentOffers])
+    setManualOffer(emptyManualOffer)
+    setIsManualOfferOpen(false)
+    toast({ title: "Oferta salva!", description: "A nova oferta manual foi adicionada na tabela." })
   }
 
   const getScoreColor = (score: number) => {
@@ -170,7 +273,7 @@ export default function DailyOffersPage() {
           <h1 className="text-3xl font-headline font-bold text-foreground">Central de Análise de Ofertas</h1>
           <p className="text-muted-foreground">Monitore e dispare as melhores oportunidades de conversão.</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20">
+        <Button className="bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20" onClick={() => setIsManualOfferOpen(true)}>
           <Plus className="mr-2 h-4 w-4" /> Nova Oferta Manual
         </Button>
       </div>
@@ -207,7 +310,7 @@ export default function DailyOffersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {initialOffers.map((offer) => (
+            {offers.map((offer) => (
               <TableRow key={offer.id} className="group hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => openAnalysis(offer)}>
                 <TableCell>
                   <div className="space-y-1">
@@ -245,18 +348,133 @@ export default function DailyOffersPage() {
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full" onClick={(e) => {
-                    e.stopPropagation();
-                    toast({ title: "Enviando...", description: "Preparando disparo para os grupos selecionados." });
-                  }}>
-                    <Send className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center justify-end gap-1">
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full" onClick={(e) => {
+                      e.stopPropagation();
+                      toast({ title: "Enviando...", description: "Preparando disparo para os grupos selecionados." });
+                    }}>
+                      <Send className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-full" onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteOffer(offer.id);
+                    }}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={isManualOfferOpen} onOpenChange={setIsManualOfferOpen}>
+        <DialogContent className="sm:max-w-[640px]">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl flex items-center gap-2">
+              <Plus className="h-6 w-6 text-primary" />
+              Nova Oferta Manual
+            </DialogTitle>
+            <DialogDescription>
+              Cadastre uma oportunidade para acompanhar e disparar nos grupos.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid md:grid-cols-2 gap-4 py-4">
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="manual-title">Nome do produto</Label>
+              <Input
+                id="manual-title"
+                value={manualOffer.title}
+                onChange={(event) => handleManualOfferChange("title", event.target.value)}
+                placeholder="Ex: Cafeteira espresso compacta"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="manual-price">Preco atual</Label>
+              <Input
+                id="manual-price"
+                value={manualOffer.price}
+                onChange={(event) => handleManualOfferChange("price", event.target.value)}
+                placeholder="R$ 199,90"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="manual-avg-price">Preco medio</Label>
+              <Input
+                id="manual-avg-price"
+                value={manualOffer.avgPrice}
+                onChange={(event) => handleManualOfferChange("avgPrice", event.target.value)}
+                placeholder="R$ 249,90"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="manual-niche">Nicho</Label>
+              <Input
+                id="manual-niche"
+                value={manualOffer.niche}
+                onChange={(event) => handleManualOfferChange("niche", event.target.value)}
+                placeholder="Cozinha"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="manual-store">Loja</Label>
+              <Input
+                id="manual-store"
+                value={manualOffer.store}
+                onChange={(event) => handleManualOfferChange("store", event.target.value)}
+                placeholder="Amazon"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="manual-affiliate-link">Link de afiliado</Label>
+              <Input
+                id="manual-affiliate-link"
+                value={manualOffer.affiliateLink}
+                onChange={(event) => handleManualOfferChange("affiliateLink", event.target.value)}
+                placeholder="https://..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="manual-score">Score</Label>
+              <Input
+                id="manual-score"
+                type="number"
+                min="0"
+                max="100"
+                value={manualOffer.score}
+                onChange={(event) => handleManualOfferChange("score", event.target.value)}
+                placeholder="90"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={manualOffer.status} onValueChange={(value) => handleManualOfferChange("status", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Ativo">Ativo</SelectItem>
+                  <SelectItem value="Pausado">Pausado</SelectItem>
+                  <SelectItem value="Expirado">Expirado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setIsManualOfferOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-primary hover:bg-primary/90"
+              onClick={handleSaveManualOffer}
+              disabled={!manualOffer.title.trim() || !manualOffer.price.trim() || !manualOffer.avgPrice.trim()}
+            >
+              Salvar Oferta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isAnalyseOpen} onOpenChange={setIsAnalyseOpen}>
         <DialogContent className="sm:max-w-[800px] overflow-hidden">
@@ -338,7 +556,7 @@ export default function DailyOffersPage() {
                     <div className="relative h-[240px]">
                       <Textarea 
                         className="h-full resize-none bg-muted/20 border-muted p-4 leading-relaxed font-body text-sm"
-                        value={generatedCopy || `🚨 OFERTA DETECTADA! 🚨\n\n${offerToAnalyse.title}\n\n🔥 De: ${offerToAnalyse.avgPrice}\n✅ Por: ${offerToAnalyse.price}\n\n🛒 Link: ${offerToAnalyse.store}.com/link-afiliado`}
+                        value={getWhatsAppMessage(offerToAnalyse)}
                         onChange={(e) => setGeneratedCopy(e.target.value)}
                       />
                     </div>
@@ -346,12 +564,19 @@ export default function DailyOffersPage() {
                 </div>
               </div>
               <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
-                <Button variant="ghost" className="text-muted-foreground" onClick={() => window.open('#', '_blank')}>
+                <Button variant="ghost" className="text-muted-foreground" onClick={() => {
+                  if (offerToAnalyse.affiliateLink) {
+                    window.open(offerToAnalyse.affiliateLink, '_blank')
+                    return
+                  }
+
+                  toast({ title: "Link nao informado", description: "Esta oferta ainda nao possui link de afiliado." })
+                }}>
                   <ExternalLink className="mr-2 h-4 w-4" /> Ver na {offerToAnalyse.store}
                 </Button>
                 <div className="flex gap-2">
                   <Button variant="secondary" onClick={() => {
-                    navigator.clipboard.writeText(generatedCopy)
+                    navigator.clipboard.writeText(getWhatsAppMessage(offerToAnalyse))
                     toast({ title: "Copiado!", description: "Mensagem pronta para colar no WhatsApp." })
                   }}>
                     <Copy className="mr-2 h-4 w-4" /> Copiar Texto
