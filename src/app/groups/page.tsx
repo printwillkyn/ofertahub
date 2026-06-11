@@ -1,20 +1,21 @@
-
 "use client"
 
 import * as React from "react"
-import { 
-  Users, 
-  Plus, 
-  Hash, 
-  Settings2, 
-  MoreHorizontal, 
-  Zap, 
-  Clock, 
-  Star, 
-  ShieldCheck, 
+import {
+  Users,
+  Plus,
+  Hash,
+  Settings2,
+  MoreHorizontal,
+  Zap,
+  Clock,
+  Star,
+  ShieldCheck,
   BarChart3,
   MessageSquare,
-  Activity
+  Activity,
+  Trash2,
+  Loader2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
@@ -33,73 +34,242 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { supabase } from "@/lib/supabase"
+import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
-const groupsData = [
-  {
-    id: "1",
-    name: "Casa & Cozinha VIP",
-    platform: "WhatsApp",
-    lastDispatch: "Hoje às 14:20",
-    offersToday: 8,
-    niches: ["Casa", "Cozinha"],
-    status: "connected",
-    waId: "1203630248593@g.us"
-  },
-  {
-    id: "2",
-    name: "Mães de Plantão",
-    platform: "WhatsApp",
-    lastDispatch: "Hoje às 09:42",
-    offersToday: 4,
-    niches: ["Bebê", "Utilidades"],
-    status: "connected",
-    waId: "1203630312456@g.us"
-  },
-  {
-    id: "3",
-    name: "Organização & Limpeza",
-    platform: "WhatsApp",
-    lastDispatch: "Ontem às 18:00",
-    offersToday: 0,
-    niches: ["Organização", "Limpeza"],
-    status: "disconnected",
-    waId: "1203630456789@g.us"
-  },
-  {
-    id: "4",
-    name: "Achadinhos do Lar",
-    platform: "WhatsApp",
-    lastDispatch: "Hoje às 11:15",
-    offersToday: 6,
-    niches: ["Casa", "Utilidades", "Organização"],
-    status: "connected",
-    waId: "1203630567890@g.us"
-  },
-  {
-    id: "5",
-    name: "Utilidades Domésticas",
-    platform: "WhatsApp",
-    lastDispatch: "Hoje às 08:30",
-    offersToday: 2,
-    niches: ["Utilidades"],
-    status: "connected",
-    waId: "1203630678901@g.us"
-  }
-]
+type Group = {
+  id: string
+  name: string
+  niche: string
+  platform: string
+  inviteLink: string
+  membersCount: number
+  status: string
+  description: string
+  createdAt: string
+}
+
+type GroupForm = {
+  name: string
+  platform: string
+  inviteLink: string
+  membersCount: string
+  status: string
+  description: string
+  niches: string[]
+}
+
+type GroupRow = {
+  id: string
+  name: string | null
+  niche: string | null
+  platform: string | null
+  invite_link: string | null
+  members_count: number | null
+  status: string | null
+  description: string | null
+  created_at: string | null
+}
 
 const nichesList = [
   "Casa", "Cozinha", "Organização", "Limpeza", "Bebê", "Utilidades"
 ]
 
-export default function DistributionPage() {
-  const [selectedGroup, setSelectedGroup] = React.useState<any>(null)
-  const [isConfigOpen, setIsConfigOpen] = React.useState(false)
+const emptyForm: GroupForm = {
+  name: "",
+  platform: "WhatsApp",
+  inviteLink: "",
+  membersCount: "",
+  status: "connected",
+  description: "",
+  niches: []
+}
 
-  const handleOpenConfig = (group: any) => {
+const mapGroupFromSupabase = (group: GroupRow): Group => ({
+  id: group.id,
+  name: group.name ?? "",
+  niche: group.niche ?? "",
+  platform: group.platform ?? "WhatsApp",
+  inviteLink: group.invite_link ?? "",
+  membersCount: group.members_count ?? 0,
+  status: group.status ?? "connected",
+  description: group.description ?? "",
+  createdAt: group.created_at ?? ""
+})
+
+const splitNiches = (niche: string) => niche
+  .split(",")
+  .map((item) => item.trim())
+  .filter(Boolean)
+
+export default function DistributionPage() {
+  const [groups, setGroups] = React.useState<Group[]>([])
+  const [selectedGroup, setSelectedGroup] = React.useState<Group | null>(null)
+  const [isConfigOpen, setIsConfigOpen] = React.useState(false)
+  const [isLoading, setIsLoading] = React.useState(true)
+  const [isSaving, setIsSaving] = React.useState(false)
+  const [deletingId, setDeletingId] = React.useState<string | null>(null)
+  const [form, setForm] = React.useState<GroupForm>(emptyForm)
+
+  const loadGroups = React.useCallback(async () => {
+    setIsLoading(true)
+
+    const { data, error } = await supabase
+      .from("groups")
+      .select("id, name, niche, platform, invite_link, members_count, status, description, created_at")
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      toast({
+        title: "Erro ao carregar grupos",
+        description: error.message,
+        variant: "destructive"
+      })
+      setIsLoading(false)
+      return
+    }
+
+    setGroups((data ?? []).map(mapGroupFromSupabase))
+    toast({
+      title: "Grupos carregados",
+      description: "A lista de grupos foi atualizada com sucesso."
+    })
+    setIsLoading(false)
+  }, [])
+
+  React.useEffect(() => {
+    loadGroups()
+  }, [loadGroups])
+
+  const handleOpenConfig = (group: Group | null) => {
     setSelectedGroup(group)
+    setForm(group ? {
+      name: group.name,
+      platform: group.platform,
+      inviteLink: group.inviteLink,
+      membersCount: String(group.membersCount || ""),
+      status: group.status,
+      description: group.description,
+      niches: splitNiches(group.niche)
+    } : emptyForm)
     setIsConfigOpen(true)
   }
+
+  const handleDialogChange = (open: boolean) => {
+    setIsConfigOpen(open)
+
+    if (!open) {
+      setSelectedGroup(null)
+      setForm(emptyForm)
+    }
+  }
+
+  const updateForm = (field: keyof GroupForm, value: string) => {
+    setForm((current) => ({ ...current, [field]: value }))
+  }
+
+  const toggleNiche = (niche: string, checked: boolean) => {
+    setForm((current) => ({
+      ...current,
+      niches: checked
+        ? [...current.niches, niche]
+        : current.niches.filter((item) => item !== niche)
+    }))
+  }
+
+  const handleSaveGroup = async () => {
+    if (!form.name.trim()) {
+      toast({
+        title: "Nome obrigatório",
+        description: "Informe o nome do grupo antes de salvar.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsSaving(true)
+
+    const payload = {
+      name: form.name.trim(),
+      niche: form.niches.join(", "),
+      platform: form.platform.trim() || "WhatsApp",
+      invite_link: form.inviteLink.trim(),
+      members_count: Number(form.membersCount) || 0,
+      status: form.status,
+      description: form.description.trim()
+    }
+
+    const query = selectedGroup
+      ? supabase
+          .from("groups")
+          .update(payload)
+          .eq("id", selectedGroup.id)
+          .select("id, name, niche, platform, invite_link, members_count, status, description, created_at")
+          .single()
+      : supabase
+          .from("groups")
+          .insert(payload)
+          .select("id, name, niche, platform, invite_link, members_count, status, description, created_at")
+          .single()
+
+    const { data, error } = await query
+
+    if (error) {
+      toast({
+        title: selectedGroup ? "Erro ao atualizar grupo" : "Erro ao cadastrar grupo",
+        description: error.message,
+        variant: "destructive"
+      })
+      setIsSaving(false)
+      return
+    }
+
+    const savedGroup = mapGroupFromSupabase(data)
+
+    setGroups((current) => {
+      if (selectedGroup) {
+        return current.map((group) => group.id === savedGroup.id ? savedGroup : group)
+      }
+
+      return [savedGroup, ...current]
+    })
+    toast({
+      title: selectedGroup ? "Grupo atualizado" : "Grupo cadastrado",
+      description: `${savedGroup.name} foi salvo com sucesso.`
+    })
+    setIsSaving(false)
+    handleDialogChange(false)
+  }
+
+  const handleDeleteGroup = async (group: Group) => {
+    setDeletingId(group.id)
+
+    const { error } = await supabase
+      .from("groups")
+      .delete()
+      .eq("id", group.id)
+
+    if (error) {
+      toast({
+        title: "Erro ao excluir grupo",
+        description: error.message,
+        variant: "destructive"
+      })
+      setDeletingId(null)
+      return
+    }
+
+    setGroups((current) => current.filter((item) => item.id !== group.id))
+    toast({
+      title: "Grupo excluído",
+      description: `${group.name} foi removido com sucesso.`
+    })
+    setDeletingId(null)
+  }
+
+  const activeGroups = groups.filter((group) => group.status === "connected").length
+  const monitoredNiches = new Set(groups.flatMap((group) => splitNiches(group.niche))).size
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-10">
@@ -115,15 +285,28 @@ export default function DistributionPage() {
 
       {/* CARDS SUPERIORES */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <MetricCard title="Grupos Ativos" value="12" icon={<Users className="h-5 w-5 text-blue-600" />} change="+2" />
-        <MetricCard title="Grupos Conectados" value="10" icon={<ShieldCheck className="h-5 w-5 text-emerald-600" />} />
-        <MetricCard title="Disparos Hoje" value="156" icon={<Zap className="h-5 w-5 text-amber-600" />} change="+12%" />
-        <MetricCard title="Nichos Monitorados" value="06" icon={<Activity className="h-5 w-5 text-indigo-600" />} />
+        <MetricCard title="Grupos Ativos" value={String(activeGroups)} icon={<Users className="h-5 w-5 text-blue-600" />} />
+        <MetricCard title="Grupos Conectados" value={String(activeGroups)} icon={<ShieldCheck className="h-5 w-5 text-emerald-600" />} />
+        <MetricCard title="Disparos Hoje" value="0" icon={<Zap className="h-5 w-5 text-amber-600" />} />
+        <MetricCard title="Nichos Monitorados" value={String(monitoredNiches).padStart(2, "0")} icon={<Activity className="h-5 w-5 text-indigo-600" />} />
       </div>
 
       {/* CARDS DOS GRUPOS */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {groupsData.map((group) => (
+        {isLoading ? (
+          <Card className="border-none shadow-sm bg-card md:col-span-2 lg:col-span-3">
+            <CardContent className="p-10 flex items-center justify-center gap-3 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Carregando grupos...
+            </CardContent>
+          </Card>
+        ) : groups.length === 0 ? (
+          <Card className="border-none shadow-sm bg-card md:col-span-2 lg:col-span-3">
+            <CardContent className="p-10 text-center text-muted-foreground">
+              Nenhum grupo cadastrado ainda.
+            </CardContent>
+          </Card>
+        ) : groups.map((group) => (
           <Card key={group.id} className="border-none shadow-sm hover:shadow-md transition-all group overflow-hidden bg-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="flex items-center gap-3">
@@ -136,7 +319,7 @@ export default function DistributionPage() {
                 <div>
                   <CardTitle className="text-base font-headline font-bold">{group.name}</CardTitle>
                   <CardDescription className="text-[10px] font-mono uppercase tracking-tighter">
-                    {group.waId}
+                    {group.inviteLink || group.platform}
                   </CardDescription>
                 </div>
               </div>
@@ -147,23 +330,27 @@ export default function DistributionPage() {
             <CardContent className="pt-4 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Último Disparo</p>
-                  <p className="text-xs font-medium text-foreground">{group.lastDispatch}</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Plataforma</p>
+                  <p className="text-xs font-medium text-foreground">{group.platform}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Ofertas Hoje</p>
-                  <p className="text-xs font-bold text-primary">{group.offersToday} disparos</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Membros</p>
+                  <p className="text-xs font-bold text-primary">{group.membersCount} membros</p>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase">Nichos Vinculados</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {group.niches.map((niche) => (
+                  {splitNiches(group.niche).length > 0 ? splitNiches(group.niche).map((niche) => (
                     <Badge key={niche} variant="secondary" className="bg-muted/50 text-muted-foreground border-none text-[9px] uppercase font-bold tracking-tight px-1.5 py-0">
                       {niche}
                     </Badge>
-                  ))}
+                  )) : (
+                    <Badge variant="secondary" className="bg-muted/50 text-muted-foreground border-none text-[9px] uppercase font-bold tracking-tight px-1.5 py-0">
+                      Sem nicho
+                    </Badge>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -175,21 +362,32 @@ export default function DistributionPage() {
                 )} />
                 {group.status === "connected" ? "Conectado" : "Desconectado"}
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-primary h-8 text-xs font-bold hover:bg-primary/5"
-                onClick={() => handleOpenConfig(group)}
-              >
-                <Settings2 className="h-3.5 w-3.5 mr-1" /> Configurar
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:bg-destructive/5"
+                  disabled={deletingId === group.id}
+                  onClick={() => handleDeleteGroup(group)}
+                >
+                  {deletingId === group.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary h-8 text-xs font-bold hover:bg-primary/5"
+                  onClick={() => handleOpenConfig(group)}
+                >
+                  <Settings2 className="h-3.5 w-3.5 mr-1" /> Configurar
+                </Button>
+              </div>
             </CardFooter>
           </Card>
         ))}
       </div>
 
       {/* CONFIGURAR GRUPO MODAL */}
-      <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+      <Dialog open={isConfigOpen} onOpenChange={handleDialogChange}>
         <DialogContent className="sm:max-w-[800px] h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-0">
             <DialogTitle className="text-2xl font-headline font-bold">
@@ -210,15 +408,34 @@ export default function DistributionPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Nome do Grupo</Label>
-                    <Input defaultValue={selectedGroup?.name} placeholder="Ex: Ofertas VIP Casa" />
+                    <Input value={form.name} onChange={(event) => updateForm("name", event.target.value)} placeholder="Ex: Ofertas VIP Casa" />
                   </div>
                   <div className="space-y-2">
-                    <Label>ID do WhatsApp</Label>
-                    <Input defaultValue={selectedGroup?.waId} placeholder="1203630... @g.us" />
+                    <Label>Plataforma</Label>
+                    <Input value={form.platform} onChange={(event) => updateForm("platform", event.target.value)} placeholder="WhatsApp" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Link de Convite</Label>
+                    <Input value={form.inviteLink} onChange={(event) => updateForm("inviteLink", event.target.value)} placeholder="https://chat.whatsapp.com/..." />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Total de Membros</Label>
+                    <Input type="number" min="0" value={form.membersCount} onChange={(event) => updateForm("membersCount", event.target.value)} placeholder="0" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <div className="flex items-center space-x-2 h-10">
+                      <Checkbox
+                        id="group-status"
+                        checked={form.status === "connected"}
+                        onCheckedChange={(checked) => updateForm("status", checked ? "connected" : "disconnected")}
+                      />
+                      <Label htmlFor="group-status">Grupo conectado</Label>
+                    </div>
                   </div>
                   <div className="col-span-2 space-y-2">
                     <Label>Descrição Interna</Label>
-                    <Textarea placeholder="Para controle da sua equipe..." className="h-20 resize-none" />
+                    <Textarea value={form.description} onChange={(event) => updateForm("description", event.target.value)} placeholder="Para controle da sua equipe..." className="h-20 resize-none" />
                   </div>
                 </div>
               </div>
@@ -231,7 +448,11 @@ export default function DistributionPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {nichesList.map((niche) => (
                     <div key={niche} className="flex items-center space-x-2">
-                      <Checkbox id={`niche-${niche}`} defaultChecked={selectedGroup?.niches.includes(niche)} />
+                      <Checkbox
+                        id={`niche-${niche}`}
+                        checked={form.niches.includes(niche)}
+                        onCheckedChange={(checked) => toggleNiche(niche, checked === true)}
+                      />
                       <label htmlFor={`niche-${niche}`} className="text-sm font-medium leading-none cursor-pointer">
                         {niche}
                       </label>
@@ -308,8 +529,8 @@ export default function DistributionPage() {
                 </h3>
                 <div className="space-y-2">
                   <Label>Estrutura da Cópia (Customizada)</Label>
-                  <Textarea 
-                    className="font-mono text-xs leading-relaxed h-32" 
+                  <Textarea
+                    className="font-mono text-xs leading-relaxed h-32"
                     defaultValue={`🔥 ACHADINHO DO DIA\n\n📦 {produto}\n\n💰 De: R$ {preco_anterior}\n🔥 Por: R$ {preco_atual}\n\n🛒 Comprar:\n{link}`}
                   />
                   <div className="flex flex-wrap gap-1.5 mt-2">
@@ -323,8 +544,11 @@ export default function DistributionPage() {
           </ScrollArea>
 
           <DialogFooter className="p-6 border-t bg-muted/20">
-            <Button variant="ghost" onClick={() => setIsConfigOpen(false)}>Cancelar</Button>
-            <Button className="bg-primary px-8" onClick={() => setIsConfigOpen(false)}>Salvar Configurações</Button>
+            <Button variant="ghost" onClick={() => handleDialogChange(false)}>Cancelar</Button>
+            <Button className="bg-primary px-8" disabled={isSaving} onClick={handleSaveGroup}>
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar Configurações
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
