@@ -312,6 +312,9 @@ export default function DisparosPage() {
   const [campaigns, setCampaigns] = React.useState<Campaign[]>([])
   const [isLoadingCampaigns, setIsLoadingCampaigns] = React.useState(true)
   const [isMining, setIsMining] = React.useState(false)
+  const [processingCampaignId, setProcessingCampaignId] = React.useState<string | null>(null)
+  const [campaignActionType, setCampaignActionType] = React.useState<"approve" | "reject" | null>(null)
+  const [campaignPendingAction, setCampaignPendingAction] = React.useState<Campaign | null>(null)
   const [selectedDisparo, setSelectedDisparo] = React.useState<SendHistory | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false)
 
@@ -474,9 +477,6 @@ export default function DisparosPage() {
       ))
     }
 
-    console.log("grupos retornados do Supabase", returnedGroups)
-    console.log("grupos filtrados para campanha", filteredGroups)
-
     const selectedGroups = filteredGroups.map((group) => ({
       id: group.id,
       name: group.name,
@@ -517,6 +517,141 @@ export default function DisparosPage() {
       description: "Uma oferta foi minerada e a campanha automática foi criada."
     })
     setIsMining(false)
+  }
+
+  const isPendingCampaign = (status: string) => status.trim().toLowerCase() === "aguardando aprovação"
+
+  const getCampaignStatusClass = (status: string) => {
+    const normalizedStatus = status.trim().toLowerCase()
+
+    if (["enviada", "aprovada"].includes(normalizedStatus)) {
+      return "bg-emerald-50 text-emerald-600 border-emerald-200 text-[9px] font-bold"
+    }
+
+    if (["rejeitada", "negada", "recusada"].includes(normalizedStatus)) {
+      return "bg-rose-50 text-rose-600 border-rose-200 text-[9px] font-bold"
+    }
+
+    return "bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold"
+  }
+
+  const openCampaignActionDialog = (campaign: Campaign, actionType: "approve" | "reject") => {
+    setCampaignPendingAction(campaign)
+    setCampaignActionType(actionType)
+  }
+
+  const closeCampaignActionDialog = () => {
+    if (processingCampaignId) {
+      return
+    }
+
+    setCampaignPendingAction(null)
+    setCampaignActionType(null)
+  }
+
+  const rejectCampaign = async (campaign: Campaign) => {
+    setProcessingCampaignId(campaign.id)
+
+    const { error } = await supabase
+      .from("campaigns")
+      .update({ status: "Rejeitada" })
+      .eq("id", campaign.id)
+
+    if (error) {
+      toast({
+        title: "Erro ao rejeitar campanha",
+        description: error.message,
+        variant: "destructive"
+      })
+      setProcessingCampaignId(null)
+      return
+    }
+
+    await loadCampaigns()
+    toast({
+      title: "Campanha rejeitada"
+    })
+    setProcessingCampaignId(null)
+    setCampaignPendingAction(null)
+    setCampaignActionType(null)
+  }
+
+  const approveCampaign = async (campaign: Campaign) => {
+    if (campaign.selectedGroups.length === 0) {
+      toast({
+        title: "Nenhum grupo selecionado para esta campanha",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setProcessingCampaignId(campaign.id)
+
+    const sentAt = new Date().toISOString()
+    const historyRows = campaign.selectedGroups.map((group) => ({
+      offer_id: campaign.offerId,
+      group_id: group?.id ?? null,
+      offer_title: campaign.offerTitle,
+      group_name: group?.name ?? "",
+      niche: campaign.niche,
+      channel: "WhatsApp",
+      message: campaign.message,
+      status: "Enviado",
+      sent_at: sentAt
+    }))
+
+    const { error: historyError } = await supabase
+      .from("send_history")
+      .insert(historyRows)
+
+    if (historyError) {
+      toast({
+        title: "Erro ao registrar envio",
+        description: historyError.message,
+        variant: "destructive"
+      })
+      setProcessingCampaignId(null)
+      return
+    }
+
+    const { error: campaignError } = await supabase
+      .from("campaigns")
+      .update({
+        status: "Enviada",
+        sent_at: sentAt
+      })
+      .eq("id", campaign.id)
+
+    if (campaignError) {
+      toast({
+        title: "Erro ao atualizar campanha",
+        description: campaignError.message,
+        variant: "destructive"
+      })
+      setProcessingCampaignId(null)
+      return
+    }
+
+    await Promise.all([loadCampaigns(), loadHistory()])
+    toast({
+      title: "Campanha enviada"
+    })
+    setProcessingCampaignId(null)
+    setCampaignPendingAction(null)
+    setCampaignActionType(null)
+  }
+
+  const handleConfirmCampaignAction = async () => {
+    if (!campaignPendingAction || !campaignActionType) {
+      return
+    }
+
+    if (campaignActionType === "approve") {
+      await approveCampaign(campaignPendingAction)
+      return
+    }
+
+    await rejectCampaign(campaignPendingAction)
   }
 
   const today = new Date()
@@ -600,18 +735,19 @@ export default function DisparosPage() {
                   <TableHead className="font-headline text-center">Origem</TableHead>
                   <TableHead className="font-headline text-center">Grupos</TableHead>
                   <TableHead className="font-headline text-right">Criada em</TableHead>
+                  <TableHead className="font-headline text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoadingCampaigns ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                       Carregando campanhas...
                     </TableCell>
                   </TableRow>
                 ) : campaigns.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                       Nenhuma campanha criada ainda.
                     </TableCell>
                   </TableRow>
@@ -626,7 +762,7 @@ export default function DisparosPage() {
                     <TableCell className="text-xs text-muted-foreground">{campaign.offerTitle}</TableCell>
                     <TableCell><Badge variant="secondary" className="bg-blue-50 text-blue-600 border-none text-[10px] uppercase font-bold">{campaign.niche}</Badge></TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold">
+                      <Badge variant="secondary" className={getCampaignStatusClass(campaign.status)}>
                         {campaign.status}
                       </Badge>
                     </TableCell>
@@ -635,6 +771,31 @@ export default function DisparosPage() {
                     </TableCell>
                     <TableCell className="text-center font-medium">{campaign.selectedGroups.length}</TableCell>
                     <TableCell className="text-right text-xs text-muted-foreground">{campaign.createdAt}</TableCell>
+                    <TableCell className="text-right">
+                      {isPendingCampaign(campaign.status) ? (
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            className="h-8 text-xs bg-primary"
+                            disabled={processingCampaignId === campaign.id}
+                            onClick={() => openCampaignActionDialog(campaign, "approve")}
+                          >
+                            Aprovar/Enviar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs"
+                            disabled={processingCampaignId === campaign.id}
+                            onClick={() => openCampaignActionDialog(campaign, "reject")}
+                          >
+                            Negar
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -736,6 +897,45 @@ export default function DisparosPage() {
         </TabsContent>
       </Tabs>
 
+      <Dialog open={!!campaignActionType && !!campaignPendingAction} onOpenChange={(open) => {
+        if (!open) {
+          closeCampaignActionDialog()
+        }
+      }}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl">
+              {campaignActionType === "approve" ? "Aprovar campanha?" : "Negar campanha?"}
+            </DialogTitle>
+            <DialogDescription>
+              {campaignActionType === "approve"
+                ? "Essa ação vai registrar o envio desta campanha para os grupos selecionados."
+                : "Essa campanha será marcada como rejeitada e não será enviada."}
+            </DialogDescription>
+          </DialogHeader>
+          {campaignPendingAction && (
+            <div className="rounded-lg border bg-muted/30 p-4 space-y-1">
+              <p className="text-sm font-bold">{campaignPendingAction.name}</p>
+              <p className="text-xs text-muted-foreground">{campaignPendingAction.offerTitle}</p>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={closeCampaignActionDialog} disabled={!!processingCampaignId}>
+              Cancelar
+            </Button>
+            <Button
+              className={cn(campaignActionType === "reject" && "bg-destructive hover:bg-destructive/90")}
+              onClick={handleConfirmCampaignAction}
+              disabled={!!processingCampaignId}
+            >
+              {processingCampaignId
+                ? campaignActionType === "approve" ? "Enviando..." : "Negando..."
+                : campaignActionType === "approve" ? "Aprovar e enviar" : "Negar campanha"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* DETALHES DO DISPARO MODAL */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <DialogContent className="sm:max-w-[700px]">
@@ -812,9 +1012,14 @@ function MetricCard({ title, value, icon }: { title: string, value: string, icon
 }
 
 function StatusBadge({ status }: { status: string }) {
-  switch (status) {
+  switch (status.trim().toLowerCase()) {
     case "sent":
+    case "enviado":
+    case "enviada":
       return <Badge className="bg-emerald-50 text-emerald-600 border-emerald-200 text-[9px] font-bold">🟢 Enviado</Badge>
+    case "rejeitada":
+    case "rejeitado":
+      return <Badge className="bg-rose-50 text-rose-600 border-rose-200 text-[9px] font-bold">Rejeitada</Badge>
     case "scheduled":
       return <Badge className="bg-amber-50 text-amber-600 border-amber-200 text-[9px] font-bold">🟡 Agendado</Badge>
     case "failed":
