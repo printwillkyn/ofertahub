@@ -17,7 +17,8 @@ import {
   ExternalLink,
   AlertTriangle,
   ChevronRight,
-  MousePointer2
+  MousePointer2,
+  TrendingUp
 } from "lucide-react"
 import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -48,6 +49,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { supabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
@@ -129,46 +131,442 @@ const templates = [
   }
 ]
 
+type SendHistory = {
+  id: string
+  offerId: string
+  groupId: string
+  offerTitle: string
+  groupName: string
+  niche: string
+  channel: string
+  message: string
+  status: string
+  sentAt: string
+  sentAtRaw: string
+  createdAt: string
+  product: string
+  groups: string[]
+  clicks: number
+  sales: number
+  commission: string
+  conversion: string
+  isRecent: boolean
+  image: string
+  score: number
+  link: string
+}
+
+type SendHistoryRow = {
+  id: string
+  offer_id: string | null
+  group_id: string | null
+  offer_title: string | null
+  group_name: string | null
+  niche: string | null
+  channel: string | null
+  message: string | null
+  status: string | null
+  sent_at: string | null
+  created_at: string | null
+}
+
+type Campaign = {
+  id: string
+  miningRunId: string
+  offerId: string
+  name: string
+  offerTitle: string
+  niche: string
+  message: string
+  messageModel: string
+  selectedGroups: any[]
+  source: string
+  status: string
+  scheduledAt: string
+  sentAt: string
+  createdAt: string
+}
+
+type CampaignRow = {
+  id: string
+  mining_run_id: string | null
+  offer_id: string | null
+  name: string | null
+  offer_title: string | null
+  niche: string | null
+  message: string | null
+  message_model: string | null
+  selected_groups: any
+  source: string | null
+  status: string | null
+  scheduled_at: string | null
+  sent_at: string | null
+  created_at: string | null
+}
+
+type GroupRow = {
+  id: string
+  name: string | null
+  niche: string | null
+  status: string | null
+}
+
+const formatDateTime = (value: string | null) => {
+  if (!value) {
+    return "-"
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date)
+}
+
+const isRecentSend = (value: string | null) => {
+  if (!value) {
+    return false
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return false
+  }
+
+  return Date.now() - date.getTime() < 24 * 60 * 60 * 1000
+}
+
+const mapHistoryFromSupabase = (item: SendHistoryRow): SendHistory => ({
+  id: item.id,
+  offerId: item.offer_id ?? "",
+  groupId: item.group_id ?? "",
+  offerTitle: item.offer_title ?? "",
+  groupName: item.group_name ?? "",
+  niche: item.niche ?? "",
+  channel: item.channel ?? "",
+  message: item.message ?? "",
+  status: item.status ?? "sent",
+  sentAt: formatDateTime(item.sent_at),
+  sentAtRaw: item.sent_at ?? "",
+  createdAt: item.created_at ?? "",
+  product: item.offer_title ?? "Oferta sem título",
+  groups: item.group_name ? [item.group_name] : [],
+  clicks: 0,
+  sales: 0,
+  commission: "R$ 0,00",
+  conversion: "0%",
+  isRecent: isRecentSend(item.sent_at),
+  image: `https://picsum.photos/seed/${item.id}/400/400`,
+  score: 0,
+  link: "",
+})
+
+const parseSelectedGroups = (value: any) => {
+  if (Array.isArray(value)) {
+    return value
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+
+  return []
+}
+
+const mapCampaignFromSupabase = (item: CampaignRow): Campaign => ({
+  id: item.id,
+  miningRunId: item.mining_run_id ?? "",
+  offerId: item.offer_id ?? "",
+  name: item.name ?? "",
+  offerTitle: item.offer_title ?? "",
+  niche: item.niche ?? "",
+  message: item.message ?? "",
+  messageModel: item.message_model ?? "",
+  selectedGroups: parseSelectedGroups(item.selected_groups),
+  source: item.source ?? "",
+  status: item.status ?? "",
+  scheduledAt: formatDateTime(item.scheduled_at),
+  sentAt: formatDateTime(item.sent_at),
+  createdAt: formatDateTime(item.created_at),
+})
+
 export default function DisparosPage() {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = React.useState("history")
-  const [selectedDisparo, setSelectedDisparo] = React.useState<any>(null)
+  const [historyRecords, setHistoryRecords] = React.useState<SendHistory[]>([])
+  const [isLoadingHistory, setIsLoadingHistory] = React.useState(true)
+  const [campaigns, setCampaigns] = React.useState<Campaign[]>([])
+  const [isLoadingCampaigns, setIsLoadingCampaigns] = React.useState(true)
+  const [isMining, setIsMining] = React.useState(false)
+  const [selectedDisparo, setSelectedDisparo] = React.useState<SendHistory | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false)
 
-  const handleRowClick = (item: any) => {
+  const loadHistory = React.useCallback(async () => {
+    setIsLoadingHistory(true)
+
+    const { data, error } = await supabase
+      .from("send_history")
+      .select("id, offer_id, group_id, offer_title, group_name, niche, channel, message, status, sent_at, created_at")
+      .order("sent_at", { ascending: false })
+
+    if (error) {
+      toast({
+        title: "Erro ao carregar histórico",
+        description: error.message,
+        variant: "destructive"
+      })
+      setIsLoadingHistory(false)
+      return
+    }
+
+    setHistoryRecords((data ?? []).map(mapHistoryFromSupabase))
+    setIsLoadingHistory(false)
+  }, [toast])
+
+  const loadCampaigns = React.useCallback(async () => {
+    setIsLoadingCampaigns(true)
+
+    const { data, error } = await supabase
+      .from("campaigns")
+      .select("id, mining_run_id, offer_id, name, offer_title, niche, message, message_model, selected_groups, source, status, scheduled_at, sent_at, created_at")
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      toast({
+        title: "Erro ao carregar campanhas",
+        description: error.message,
+        variant: "destructive"
+      })
+      setIsLoadingCampaigns(false)
+      return
+    }
+
+    setCampaigns((data ?? []).map(mapCampaignFromSupabase))
+    setIsLoadingCampaigns(false)
+  }, [toast])
+
+  React.useEffect(() => {
+    loadHistory()
+    loadCampaigns()
+  }, [loadHistory, loadCampaigns])
+
+  const handleRowClick = (item: SendHistory) => {
     setSelectedDisparo(item)
     setIsDetailsOpen(true)
   }
+
+  const handleMineOffers = async () => {
+    setIsMining(true)
+
+    const now = new Date().toISOString()
+    const offerTitle = "Oferta minerada - Kit Organização Casa"
+    const offerLink = "https://exemplo.com/oferta-minerada"
+
+    const { data: miningRun, error: miningRunError } = await supabase
+      .from("mining_runs")
+      .insert({
+        source: "simulador",
+        status: "Concluído",
+        niche: "Casa",
+        offers_found: 1,
+        campaigns_created: 1,
+        finished_at: now
+      })
+      .select("id")
+      .single()
+
+    if (miningRunError) {
+      toast({
+        title: "Erro ao criar mineração",
+        description: miningRunError.message,
+        variant: "destructive"
+      })
+      setIsMining(false)
+      return
+    }
+
+    const { data: offer, error: offerError } = await supabase
+      .from("offers")
+      .insert({
+        title: offerTitle,
+        price: "R$ 79,90",
+        avg_price: "R$ 129,90",
+        economy: "R$ 50,00",
+        niche: "Casa",
+        rating: 4.8,
+        sales: "Minerador",
+        score: 92,
+        store: "Marketplace",
+        status: "Ativo",
+        image: "manual-item",
+        affiliate_link: offerLink
+      })
+      .select("id")
+      .single()
+
+    if (offerError) {
+      toast({
+        title: "Erro ao criar oferta",
+        description: offerError.message,
+        variant: "destructive"
+      })
+      setIsMining(false)
+      return
+    }
+
+    const normalizeGroupText = (value: string | null) => value?.trim().toLowerCase() ?? ""
+    const inactiveStatuses = new Set(["inativo", "inactive", "pausado", "paused", "arquivado", "archived"])
+    const isValidGroupStatus = (status: string | null) => !inactiveStatuses.has(normalizeGroupText(status))
+
+    let { data: groups, error: groupsError } = await supabase
+      .from("groups")
+      .select("id, name, niche, status")
+
+    if (groupsError) {
+      toast({
+        title: "Erro ao buscar grupos",
+        description: groupsError.message,
+        variant: "destructive"
+      })
+      setIsMining(false)
+      return
+    }
+
+    let returnedGroups = (groups ?? []) as GroupRow[]
+    let filteredGroups = returnedGroups.filter((group) => (
+      normalizeGroupText(group.niche) === "casa" &&
+      isValidGroupStatus(group.status)
+    ))
+
+    if (filteredGroups.length === 0) {
+      const { data: fallbackGroups, error: fallbackGroupsError } = await supabase
+        .from("groups")
+        .select("id, name, niche, status")
+
+      if (fallbackGroupsError) {
+        toast({
+          title: "Erro ao buscar grupos",
+          description: fallbackGroupsError.message,
+          variant: "destructive"
+        })
+        setIsMining(false)
+        return
+      }
+
+      returnedGroups = (fallbackGroups ?? []) as GroupRow[]
+      filteredGroups = returnedGroups.filter((group) => (
+        normalizeGroupText(group.niche) === "casa" &&
+        isValidGroupStatus(group.status)
+      ))
+    }
+
+    console.log("grupos retornados do Supabase", returnedGroups)
+    console.log("grupos filtrados para campanha", filteredGroups)
+
+    const selectedGroups = filteredGroups.map((group) => ({
+      id: group.id,
+      name: group.name,
+      niche: group.niche,
+      status: group.status
+    }))
+
+    const message = `🔥 Oferta minerada pelo Bot\n\n${offerTitle}\nPor apenas R$ 79,90\nEconomia de R$ 50,00\n\nComprar agora:\n${offerLink}`
+
+    const { error: campaignError } = await supabase
+      .from("campaigns")
+      .insert({
+        mining_run_id: miningRun.id,
+        offer_id: offer.id,
+        name: "Campanha automática - Kit Organização Casa",
+        offer_title: offerTitle,
+        niche: "Casa",
+        message,
+        message_model: "Modelo automático 01",
+        selected_groups: selectedGroups,
+        source: "bot",
+        status: "Aguardando aprovação"
+      })
+
+    if (campaignError) {
+      toast({
+        title: "Erro ao criar campanha",
+        description: campaignError.message,
+        variant: "destructive"
+      })
+      setIsMining(false)
+      return
+    }
+
+    await loadCampaigns()
+    toast({
+      title: "Minerador finalizado",
+      description: "Uma oferta foi minerada e a campanha automática foi criada."
+    })
+    setIsMining(false)
+  }
+
+  const today = new Date()
+  const sentTodayCount = historyRecords.filter((item) => {
+    if (!item.sentAtRaw) {
+      return false
+    }
+
+    const sentAt = new Date(item.sentAtRaw)
+
+    if (Number.isNaN(sentAt.getTime())) {
+      return false
+    }
+
+    return (
+      sentAt.getFullYear() === today.getFullYear() &&
+      sentAt.getMonth() === today.getMonth() &&
+      sentAt.getDate() === today.getDate()
+    )
+  }).length
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-headline font-bold text-foreground">Disparos & Campanhas</h1>
-          <p className="text-muted-foreground">Gerencie suas mensagens enviadas e biblioteca de modelos.</p>
+          <h1 className="text-3xl font-headline font-bold text-foreground">Bot Minerador de Ofertas</h1>
+          <p className="text-muted-foreground">Minere ofertas, gere campanhas automáticas e acompanhe os envios.</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20">
-          <Plus className="mr-2 h-4 w-4" /> Nova Campanha
+        <Button className="bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20" onClick={handleMineOffers} disabled={isMining}>
+          <Plus className="mr-2 h-4 w-4" /> {isMining ? "Minerando..." : "Minerar Ofertas"}
         </Button>
       </div>
 
       <Tabs defaultValue="history" className="w-full" onValueChange={setActiveTab}>
         <TabsList className="bg-card border w-full justify-start p-1 h-auto mb-6">
           <TabsTrigger value="history" className="rounded-md py-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <History className="h-4 w-4 mr-2" /> Histórico de Envios
+            <History className="h-4 w-4 mr-2" /> Campanhas do Bot
           </TabsTrigger>
           <TabsTrigger value="templates" className="rounded-md py-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <LayoutTemplate className="h-4 w-4 mr-2" /> Modelos de Mensagem
           </TabsTrigger>
         </TabsList>
 
-        {/* --- ABA 1: HISTÓRICO --- */}
+        {/* --- ABA 1: CAMPANHAS --- */}
         <TabsContent value="history" className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <MetricCard title="Disparos Hoje" value="156" icon={<Send className="h-5 w-5 text-blue-600" />} />
-            <MetricCard title="Cliques Gerados" value="12.845" icon={<MousePointer2 className="h-5 w-5 text-indigo-600" />} />
-            <MetricCard title="Vendas Geradas" value="142" icon={<ShoppingCart className="h-5 w-5 text-emerald-600" />} />
-            <MetricCard title="Comissões Geradas" value="R$ 2.450,00" icon={<DollarSign className="h-5 w-5 text-amber-600" />} />
+            <MetricCard title="Disparos Hoje" value={String(sentTodayCount)} icon={<Send className="h-5 w-5 text-blue-600" />} />
+            <MetricCard title="Cliques Gerados" value="0" icon={<MousePointer2 className="h-5 w-5 text-indigo-600" />} />
+            <MetricCard title="Vendas Geradas" value="0" icon={<ShoppingCart className="h-5 w-5 text-emerald-600" />} />
+            <MetricCard title="Comissões Geradas" value="R$ 0,00" icon={<DollarSign className="h-5 w-5 text-amber-600" />} />
           </div>
 
           <div className="flex flex-col md:flex-row gap-4 items-center bg-card p-4 rounded-xl border shadow-sm">
@@ -195,28 +593,82 @@ export default function DisparosPage() {
             <Table>
               <TableHeader className="bg-muted/30">
                 <TableRow>
-                  <TableHead className="py-4 font-headline">Produto</TableHead>
+                  <TableHead className="py-4 font-headline">Campanha</TableHead>
+                  <TableHead className="font-headline">Oferta</TableHead>
+                  <TableHead className="font-headline">Nicho</TableHead>
+                  <TableHead className="font-headline text-center">Status</TableHead>
+                  <TableHead className="font-headline text-center">Origem</TableHead>
+                  <TableHead className="font-headline text-center">Grupos</TableHead>
+                  <TableHead className="font-headline text-right">Criada em</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingCampaigns ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                      Carregando campanhas...
+                    </TableCell>
+                  </TableRow>
+                ) : campaigns.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                      Nenhuma campanha criada ainda.
+                    </TableCell>
+                  </TableRow>
+                ) : campaigns.map((campaign) => (
+                  <TableRow key={campaign.id} className="group hover:bg-muted/20 transition-colors">
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="font-semibold text-foreground group-hover:text-primary transition-colors">{campaign.name}</div>
+                        <div className="text-[10px] text-muted-foreground font-mono uppercase">{campaign.messageModel}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{campaign.offerTitle}</TableCell>
+                    <TableCell><Badge variant="secondary" className="bg-blue-50 text-blue-600 border-none text-[10px] uppercase font-bold">{campaign.niche}</Badge></TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold">
+                        {campaign.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline" className="text-[10px] uppercase font-bold">{campaign.source}</Badge>
+                    </TableCell>
+                    <TableCell className="text-center font-medium">{campaign.selectedGroups.length}</TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground">{campaign.createdAt}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow>
+                  <TableHead className="py-4 font-headline">Últimos Envios</TableHead>
                   <TableHead className="font-headline">Nicho</TableHead>
                   <TableHead className="font-headline">Grupo(s)</TableHead>
                   <TableHead className="font-headline">Data/Hora</TableHead>
-                  <TableHead className="font-headline text-center">Cliques</TableHead>
-                  <TableHead className="font-headline text-center">Vendas</TableHead>
-                  <TableHead className="font-headline text-right">Comissão</TableHead>
                   <TableHead className="font-headline text-center">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {historyData.map((item) => (
+                {isLoadingHistory ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
+                      Carregando histórico...
+                    </TableCell>
+                  </TableRow>
+                ) : historyRecords.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
+                      Nenhum envio encontrado.
+                    </TableCell>
+                  </TableRow>
+                ) : historyRecords.slice(0, 5).map((item) => (
                   <TableRow key={item.id} className="group cursor-pointer hover:bg-muted/20 transition-colors" onClick={() => handleRowClick(item)}>
                     <TableCell>
-                      <div className="space-y-1">
-                        <div className="font-semibold text-foreground group-hover:text-primary transition-colors">{item.product}</div>
-                        {item.isRecent && (
-                          <span className="inline-flex items-center text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200">
-                            <AlertTriangle className="h-2.5 w-2.5 mr-1" /> ENVIADO RECENTEMENTE
-                          </span>
-                        )}
-                      </div>
+                      <div className="font-semibold text-foreground group-hover:text-primary transition-colors">{item.product}</div>
                     </TableCell>
                     <TableCell><Badge variant="secondary" className="bg-blue-50 text-blue-600 border-none text-[10px] uppercase font-bold">{item.niche}</Badge></TableCell>
                     <TableCell>
@@ -229,9 +681,6 @@ export default function DisparosPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{item.sentAt}</TableCell>
-                    <TableCell className="text-center font-medium">{item.clicks}</TableCell>
-                    <TableCell className="text-center font-medium">{item.sales}</TableCell>
-                    <TableCell className="text-right font-bold text-emerald-600">{item.commission}</TableCell>
                     <TableCell className="text-center">
                       <StatusBadge status={item.status} />
                     </TableCell>
