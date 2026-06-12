@@ -204,13 +204,6 @@ type CampaignRow = {
   created_at: string | null
 }
 
-type GroupRow = {
-  id: string
-  name: string | null
-  niche: string | null
-  status: string | null
-}
-
 const formatDateTime = (value: string | null) => {
   if (!value) {
     return "-"
@@ -375,148 +368,28 @@ export default function DisparosPage() {
   const handleMineOffers = async () => {
     setIsMining(true)
 
-    const now = new Date().toISOString()
-    const offerTitle = "Oferta minerada - Kit Organização Casa"
-    const offerLink = "https://exemplo.com/oferta-minerada"
+    try {
+      const response = await fetch("/api/miner/run", { method: "POST" })
+      const result = await response.json()
 
-    const { data: miningRun, error: miningRunError } = await supabase
-      .from("mining_runs")
-      .insert({
-        source: "simulador",
-        status: "Concluído",
-        niche: "Casa",
-        offers_found: 1,
-        campaigns_created: 1,
-        finished_at: now
-      })
-      .select("id")
-      .single()
-
-    if (miningRunError) {
-      toast({
-        title: "Erro ao criar mineração",
-        description: miningRunError.message,
-        variant: "destructive"
-      })
-      setIsMining(false)
-      return
-    }
-
-    const { data: offer, error: offerError } = await supabase
-      .from("offers")
-      .insert({
-        title: offerTitle,
-        price: "R$ 79,90",
-        avg_price: "R$ 129,90",
-        economy: "R$ 50,00",
-        niche: "Casa",
-        rating: 4.8,
-        sales: "Minerador",
-        score: 92,
-        store: "Marketplace",
-        status: "Ativo",
-        image: "manual-item",
-        affiliate_link: offerLink
-      })
-      .select("id")
-      .single()
-
-    if (offerError) {
-      toast({
-        title: "Erro ao criar oferta",
-        description: offerError.message,
-        variant: "destructive"
-      })
-      setIsMining(false)
-      return
-    }
-
-    const normalizeGroupText = (value: string | null) => value?.trim().toLowerCase() ?? ""
-    const inactiveStatuses = new Set(["inativo", "inactive", "pausado", "paused", "arquivado", "archived"])
-    const isValidGroupStatus = (status: string | null) => !inactiveStatuses.has(normalizeGroupText(status))
-
-    let { data: groups, error: groupsError } = await supabase
-      .from("groups")
-      .select("id, name, niche, status")
-
-    if (groupsError) {
-      toast({
-        title: "Erro ao buscar grupos",
-        description: groupsError.message,
-        variant: "destructive"
-      })
-      setIsMining(false)
-      return
-    }
-
-    let returnedGroups = (groups ?? []) as GroupRow[]
-    let filteredGroups = returnedGroups.filter((group) => (
-      normalizeGroupText(group.niche) === "casa" &&
-      isValidGroupStatus(group.status)
-    ))
-
-    if (filteredGroups.length === 0) {
-      const { data: fallbackGroups, error: fallbackGroupsError } = await supabase
-        .from("groups")
-        .select("id, name, niche, status")
-
-      if (fallbackGroupsError) {
-        toast({
-          title: "Erro ao buscar grupos",
-          description: fallbackGroupsError.message,
-          variant: "destructive"
-        })
-        setIsMining(false)
-        return
+      if (!response.ok || !result.success) {
+        throw new Error(result.error ?? "Não foi possível executar o minerador.")
       }
 
-      returnedGroups = (fallbackGroups ?? []) as GroupRow[]
-      filteredGroups = returnedGroups.filter((group) => (
-        normalizeGroupText(group.niche) === "casa" &&
-        isValidGroupStatus(group.status)
-      ))
-    }
-
-    const selectedGroups = filteredGroups.map((group) => ({
-      id: group.id,
-      name: group.name,
-      niche: group.niche,
-      status: group.status
-    }))
-
-    const message = `🔥 Oferta minerada pelo Bot\n\n${offerTitle}\nPor apenas R$ 79,90\nEconomia de R$ 50,00\n\nComprar agora:\n${offerLink}`
-
-    const { error: campaignError } = await supabase
-      .from("campaigns")
-      .insert({
-        mining_run_id: miningRun.id,
-        offer_id: offer.id,
-        name: "Campanha automática - Kit Organização Casa",
-        offer_title: offerTitle,
-        niche: "Casa",
-        message,
-        message_model: "Modelo automático 01",
-        selected_groups: selectedGroups,
-        source: "bot",
-        status: "Aguardando aprovação"
-      })
-
-    if (campaignError) {
+      await Promise.all([loadCampaigns(), loadHistory()])
       toast({
-        title: "Erro ao criar campanha",
-        description: campaignError.message,
+        title: "Minerador finalizado",
+        description: "Uma oferta foi minerada e a campanha automática foi criada."
+      })
+    } catch (error) {
+      toast({
+        title: "Erro ao executar minerador",
+        description: error instanceof Error ? error.message : "Não foi possível executar o minerador.",
         variant: "destructive"
       })
+    } finally {
       setIsMining(false)
-      return
     }
-
-    await loadCampaigns()
-    toast({
-      title: "Minerador finalizado",
-      description: "Uma oferta foi minerada e a campanha automática foi criada."
-    })
-    setIsMining(false)
   }
 
   const isPendingCampaign = (status: string) => status.trim().toLowerCase() === "aguardando aprovação"
