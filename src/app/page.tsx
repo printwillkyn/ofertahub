@@ -3,9 +3,9 @@
 
 import * as React from "react"
 import { 
-  MousePointer2, 
+  MousePointer2,
   ShoppingCart, 
-  DollarSign, 
+  DollarSign,
   Zap,
   ArrowUpRight,
   ChevronRight,
@@ -41,86 +41,141 @@ import {
   ChartTooltipContent 
 } from "@/components/ui/chart"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from "recharts"
+import { supabase } from "@/lib/supabase"
+import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 
-const bestOpportunities = [
-  {
-    id: "1",
-    product: "iPhone 15 Pro Max 256GB",
-    niche: "Eletrônicos",
-    price: "R$ 8.499,00",
-    score: 98,
-    commission: "R$ 254,97"
-  },
-  {
-    id: "2",
-    product: "Kindle Paperwhite 16GB",
-    niche: "Educação",
-    price: "R$ 699,00",
-    score: 95,
-    commission: "R$ 41,94"
-  },
-  {
-    id: "3",
-    product: "Fritadeira Philips Walita",
-    niche: "Casa",
-    price: "R$ 449,90",
-    score: 92,
-    commission: "R$ 31,49"
-  },
-  {
-    id: "4",
-    product: "Console PlayStation 5 Slim",
-    niche: "Games",
-    price: "R$ 3.699,00",
-    score: 89,
-    commission: "R$ 110,97"
-  }
-]
-
-const lastSentOffers = [
-  {
-    id: "1",
-    product: "Smart TV Samsung 55' UHD",
-    group: "Ofertas Tech Brasil",
-    time: "Hoje, 14:20",
-    status: "success"
-  },
-  {
-    id: "2",
-    product: "Airfryer Philco Gourmet",
-    group: "Casa & Cozinha VIP",
-    time: "Hoje, 09:15",
-    status: "success"
-  },
-  {
-    id: "3",
-    product: "Mouse Logitech G502",
-    group: "Gamers Brasil",
-    time: "Ontem, 21:00",
-    status: "error"
-  }
-]
-
 const chartData = [
-  { period: "01/03", value: 1200 },
-  { period: "05/03", value: 1800 },
-  { period: "10/03", value: 1400 },
-  { period: "15/03", value: 2400 },
-  { period: "20/03", value: 2100 },
-  { period: "25/03", value: 2800 },
-  { period: "30/03", value: 3200 },
+  { period: "01/03", value: 0 },
+  { period: "05/03", value: 0 },
+  { period: "10/03", value: 0 },
+  { period: "15/03", value: 0 },
+  { period: "20/03", value: 0 },
+  { period: "25/03", value: 0 },
+  { period: "30/03", value: 0 },
 ]
 
-const topPerformanceModels = [
-  { id: "t1", name: "Achadinho do Dia", clicks: 4200, conversion: "3.4%" },
-  { id: "t2", name: "Preço Caiu!", clicks: 3150, conversion: "2.8%" },
-  { id: "t3", name: "Oferta Relâmpago", clicks: 2800, conversion: "2.5%" }
-]
+type Offer = {
+  id: string
+  title: string | null
+  niche: string | null
+  price: string | null
+  score: number | null
+}
+
+type Campaign = {
+  id: string
+  name: string | null
+  offer_title: string | null
+  status: string | null
+  created_at: string | null
+}
+
+type SendHistory = {
+  id: string
+  offer_title: string | null
+  group_name: string | null
+  status: string | null
+  sent_at: string | null
+}
+
+const formatDateTime = (value: string | null) => {
+  if (!value) {
+    return "-"
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date)
+}
 
 export default function DashboardPage() {
+  const { toast } = useToast()
   const [period, setPeriod] = React.useState("30")
+  const [isLoading, setIsLoading] = React.useState(true)
+  const [metrics, setMetrics] = React.useState({
+    offersToday: 0
+  })
+  const [latestOffers, setLatestOffers] = React.useState<Offer[]>([])
+  const [recentCampaigns, setRecentCampaigns] = React.useState<Campaign[]>([])
+  const [latestSends, setLatestSends] = React.useState<SendHistory[]>([])
+
+  React.useEffect(() => {
+    const loadDashboard = async () => {
+      setIsLoading(true)
+
+      const todayStart = new Date()
+      todayStart.setHours(0, 0, 0, 0)
+
+      const tomorrowStart = new Date(todayStart)
+      tomorrowStart.setDate(tomorrowStart.getDate() + 1)
+
+      const [
+        offersTodayResult,
+        latestOffersResult,
+        recentCampaignsResult,
+        latestSendsResult
+      ] = await Promise.all([
+        supabase
+          .from("offers")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", todayStart.toISOString())
+          .lt("created_at", tomorrowStart.toISOString()),
+        supabase
+          .from("offers")
+          .select("id, title, niche, price, score")
+          .order("created_at", { ascending: false })
+          .limit(4),
+        supabase
+          .from("campaigns")
+          .select("id, name, offer_title, status, created_at")
+          .order("created_at", { ascending: false })
+          .limit(3),
+        supabase
+          .from("send_history")
+          .select("id, offer_title, group_name, status, sent_at")
+          .order("sent_at", { ascending: false })
+          .limit(5)
+      ])
+
+      const firstError = [
+        offersTodayResult.error,
+        latestOffersResult.error,
+        recentCampaignsResult.error,
+        latestSendsResult.error
+      ].find(Boolean)
+
+      if (firstError) {
+        toast({
+          title: "Erro ao carregar dashboard",
+          description: firstError.message,
+          variant: "destructive"
+        })
+        setIsLoading(false)
+        return
+      }
+
+      setMetrics({
+        offersToday: offersTodayResult.count ?? 0
+      })
+      setLatestOffers((latestOffersResult.data ?? []) as Offer[])
+      setRecentCampaigns((recentCampaignsResult.data ?? []) as Campaign[])
+      setLatestSends((latestSendsResult.data ?? []) as SendHistory[])
+      setIsLoading(false)
+    }
+
+    loadDashboard()
+  }, [toast])
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-10">
@@ -153,14 +208,14 @@ export default function DashboardPage() {
               <div className="p-2 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
                 <MousePointer2 className="h-6 w-6 text-blue-600" />
               </div>
-              <span className="flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
-                <ArrowUpRight className="h-3 w-3 mr-1" /> +12.5%
+              <span className="flex items-center text-xs font-bold text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+                <ArrowUpRight className="h-3 w-3 mr-1" /> 0%
               </span>
             </div>
             <div className="mt-4">
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Cliques nos Links</p>
-              <h3 className="text-3xl font-headline font-bold text-foreground mt-1">12.845</h3>
-              <p className="text-[10px] text-muted-foreground mt-1">Total de acessos via links afiliados</p>
+              <h3 className="text-3xl font-headline font-bold text-foreground mt-1">0</h3>
+              <p className="text-[10px] text-muted-foreground mt-1">Rastreamento de cliques ainda não configurado</p>
             </div>
           </CardContent>
         </Card>
@@ -172,14 +227,14 @@ export default function DashboardPage() {
               <div className="p-2 rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
                 <ShoppingCart className="h-6 w-6 text-indigo-600" />
               </div>
-              <span className="flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
-                <ArrowUpRight className="h-3 w-3 mr-1" /> +8.2%
+              <span className="flex items-center text-xs font-bold text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+                <ArrowUpRight className="h-3 w-3 mr-1" /> 0%
               </span>
             </div>
             <div className="mt-4">
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Produtos Vendidos</p>
-              <h3 className="text-3xl font-headline font-bold text-foreground mt-1">842</h3>
-              <p className="text-[10px] text-muted-foreground mt-1">Conversões diretas confirmadas</p>
+              <h3 className="text-3xl font-headline font-bold text-foreground mt-1">0</h3>
+              <p className="text-[10px] text-muted-foreground mt-1">Rastreamento de vendas ainda não configurado</p>
             </div>
           </CardContent>
         </Card>
@@ -191,14 +246,14 @@ export default function DashboardPage() {
               <div className="p-2 rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/20">
                 <DollarSign className="h-6 w-6" />
               </div>
-              <span className="flex items-center text-xs font-bold text-emerald-600 bg-emerald-100/50 px-2 py-1 rounded-full">
-                <ArrowUpRight className="h-3 w-3 mr-1" /> +15.4%
+              <span className="flex items-center text-xs font-bold text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+                <ArrowUpRight className="h-3 w-3 mr-1" /> 0%
               </span>
             </div>
             <div className="mt-4">
               <p className="text-xs font-bold text-primary uppercase tracking-widest">Comissões Geradas</p>
-              <h3 className="text-3xl font-headline font-bold text-foreground mt-1">R$ 14.250,80</h3>
-              <p className="text-[10px] text-muted-foreground mt-1">Valor total estimado de receita</p>
+              <h3 className="text-3xl font-headline font-bold text-foreground mt-1">R$ 0,00</h3>
+              <p className="text-[10px] text-muted-foreground mt-1">Rastreamento de comissão ainda não configurado</p>
             </div>
           </CardContent>
         </Card>
@@ -216,8 +271,8 @@ export default function DashboardPage() {
             </div>
             <div className="mt-4">
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Ofertas Hoje</p>
-              <h3 className="text-3xl font-headline font-bold text-foreground mt-1">156</h3>
-              <p className="text-[10px] text-emerald-600 font-bold mt-1">42 prontas para envio imediato</p>
+              <h3 className="text-3xl font-headline font-bold text-foreground mt-1">{isLoading ? "..." : metrics.offersToday}</h3>
+              <p className="text-[10px] text-emerald-600 font-bold mt-1">{isLoading ? "..." : metrics.offersToday} prontas para envio imediato</p>
             </div>
           </CardContent>
         </Card>
@@ -251,25 +306,38 @@ export default function DashboardPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <LayoutTemplate className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg font-headline">Top Mensagens</CardTitle>
+              <CardTitle className="text-lg font-headline">Campanhas Recentes</CardTitle>
             </div>
-            <CardDescription>Performance por modelo de copy.</CardDescription>
+            <CardDescription>Últimas campanhas criadas no Supabase.</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-none">
-                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">Modelo</TableHead>
-                  <TableHead className="text-right text-[10px] font-bold uppercase tracking-wider">Conv.</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">Campanha</TableHead>
+                  <TableHead className="text-right text-[10px] font-bold uppercase tracking-wider">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topPerformanceModels.map((model) => (
-                  <TableRow key={model.id} className="hover:bg-muted/10 border-muted/20">
-                    <TableCell className="text-xs font-semibold py-4">{model.name}</TableCell>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={2} className="h-20 text-center text-xs text-muted-foreground">Carregando...</TableCell>
+                  </TableRow>
+                ) : recentCampaigns.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={2} className="h-20 text-center text-xs text-muted-foreground">Nenhuma campanha encontrada.</TableCell>
+                  </TableRow>
+                ) : recentCampaigns.map((campaign) => (
+                  <TableRow key={campaign.id} className="hover:bg-muted/10 border-muted/20">
+                    <TableCell className="text-xs font-semibold py-4">
+                      <div className="space-y-1">
+                        <p className="line-clamp-1">{campaign.name ?? campaign.offer_title ?? "Campanha sem nome"}</p>
+                        <p className="text-[10px] text-muted-foreground">{formatDateTime(campaign.created_at)}</p>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <Badge variant="secondary" className="bg-emerald-50 text-emerald-600 border-none text-[10px] font-bold">
-                        {model.conversion}
+                        {campaign.status ?? "Sem status"}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -281,12 +349,12 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* SEÇÃO 1: Melhores Oportunidades do Dia */}
+        {/* SEÇÃO 1: Últimas Ofertas */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between px-2">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-headline font-bold text-foreground">Melhores Oportunidades do Dia</h2>
+              <h2 className="text-xl font-headline font-bold text-foreground">Últimas Ofertas</h2>
             </div>
             <Button variant="ghost" size="sm" className="text-primary font-bold text-xs" asChild>
               <Link href="/offers">
@@ -307,26 +375,34 @@ export default function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {bestOpportunities.map((item) => (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">Carregando ofertas...</TableCell>
+                  </TableRow>
+                ) : latestOffers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">Nenhuma oferta encontrada.</TableCell>
+                  </TableRow>
+                ) : latestOffers.map((item) => (
                   <TableRow key={item.id} className="group hover:bg-muted/10 transition-colors">
-                    <TableCell className="font-semibold py-4 max-w-[200px] truncate">{item.product}</TableCell>
+                    <TableCell className="font-semibold py-4 max-w-[200px] truncate">{item.title ?? "Oferta sem título"}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-none text-[10px] uppercase font-bold">
-                        {item.niche}
+                        {item.niche ?? "Sem nicho"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-medium text-muted-foreground">{item.price}</TableCell>
+                    <TableCell className="font-medium text-muted-foreground">{item.price ?? "-"}</TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center">
                         <div className={cn(
                           "flex items-center justify-center h-8 w-8 rounded-full text-[10px] font-bold border-2",
-                          item.score > 90 ? "border-emerald-500 text-emerald-600 bg-emerald-50" : "border-amber-500 text-amber-600 bg-amber-50"
+                          (item.score ?? 0) > 90 ? "border-emerald-500 text-emerald-600 bg-emerald-50" : "border-amber-500 text-amber-600 bg-amber-50"
                         )}>
-                          {item.score}
+                          {item.score ?? 0}
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-bold text-primary">{item.commission}</TableCell>
+                    <TableCell className="text-right font-bold text-primary">R$ 0,00</TableCell>
                     <TableCell className="text-right">
                       <Button size="sm" variant="ghost" className="text-primary hover:text-primary/80 font-bold text-xs">
                         Ver Oferta <ExternalLink className="h-3 w-3 ml-1" />
@@ -347,26 +423,32 @@ export default function DashboardPage() {
           </div>
           <Card className="border-none shadow-sm overflow-hidden bg-card h-full">
             <div className="divide-y divide-muted/30">
-              {lastSentOffers.map((offer) => (
+              {isLoading ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">Carregando envios...</div>
+              ) : latestSends.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">Nenhum envio encontrado.</div>
+              ) : latestSends.map((offer) => (
                 <div key={offer.id} className="p-4 hover:bg-muted/20 transition-colors">
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-bold text-sm text-foreground line-clamp-1 flex-1">{offer.product}</h3>
-                    {offer.status === "success" ? (
+                    <h3 className="font-bold text-sm text-foreground line-clamp-1 flex-1">{offer.offer_title ?? "Envio sem título"}</h3>
+                    {(offer.status ?? "").toLowerCase() === "enviado" || (offer.status ?? "").toLowerCase() === "sent" ? (
                       <CheckCircle2 className="h-4 w-4 text-emerald-500 ml-2 shrink-0" />
                     ) : (
                       <AlertCircle className="h-4 w-4 text-rose-500 ml-2 shrink-0" />
                     )}
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span className="font-medium">{offer.group}</span>
-                    <span className="font-semibold">{offer.time}</span>
+                    <span className="font-medium">{offer.group_name ?? "Sem grupo"}</span>
+                    <span className="font-semibold">{formatDateTime(offer.sent_at)}</span>
                   </div>
                   <div className="mt-2">
                     <Badge className={cn(
                       "text-[9px] font-bold uppercase py-0 px-1.5",
-                      offer.status === "success" ? "bg-emerald-50 text-emerald-600 border-none" : "bg-rose-50 text-rose-600 border-none"
+                      (offer.status ?? "").toLowerCase() === "enviado" || (offer.status ?? "").toLowerCase() === "sent"
+                        ? "bg-emerald-50 text-emerald-600 border-none"
+                        : "bg-rose-50 text-rose-600 border-none"
                     )}>
-                      {offer.status === "success" ? "Enviada" : "Erro"}
+                      {offer.status ?? "Sem status"}
                     </Badge>
                   </div>
                 </div>
